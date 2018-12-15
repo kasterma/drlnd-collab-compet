@@ -6,6 +6,7 @@ from collections import deque
 
 import yaml
 import click
+import os.path
 
 from collabcompet import *
 import numpy as np
@@ -114,8 +115,18 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     log.info("Saving models under id %s", run_id)
     agent_A.save()
     agent_B.save()
-    log.info("Saving scores to file scores-%d.npy", run_id)
-    np.save("scores-{}.npy".format(run_id), np.array(scores_deque))
+
+    def scores_filename(idx):
+        """Create scores filename"""
+        base = "scores-{}".format(run_id)
+        idx_p = f"-{idx}" if idx == 0 else ""
+        ext = ".npy"
+        return base + idx_p + ext
+    scores_addition = 0
+    while os.path.isfile(scores_filename(scores_addition)):
+        scores_addition += 1
+    log.info("Saving scores to file %s", scores_filename(scores_addition))
+    np.save(scores_filename(scores_addition), np.array(scores_deque))
 
 
 def test_run(number_episodes: int = 100, print_every: int = 1, run_id=0, scores_window=100):
