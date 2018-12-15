@@ -80,12 +80,20 @@ class Agent:
             self._learn()
 
     def get_action(self, state: np.ndarray, add_noise=True) -> np.ndarray:
+        assert state.shape == (24,)
         self.actor_local.eval()
         with torch.no_grad():
             action = self.actor_local(torch.from_numpy(state).float().to(device)).cpu().numpy()
         if add_noise:
-            action += self.noise.sample()
-        return action
+            n = self.noise.sample()
+            assert n.shape == (2,)
+            log.debug("noise %s", n)
+            action += n
+        assert action.shape == (2,)
+        return np.clip(action, -1, 1)
+
+    def files_exist(self) -> bool:
+        """Check if the model files already exist.
 
         Note: also checks that if any exist all exists.
         """

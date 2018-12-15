@@ -33,7 +33,7 @@ class StepResult:
 class Tennis:
     def __init__(self):
         self.env = UnityEnvironment(file_name="files/Tennis.app")
-        log.info("Tennis environment set up")
+        log.debug("Tennis environment set up")
 
     def reset(self, train_mode=True) -> np.ndarray:
         """Reset the environment
@@ -42,7 +42,7 @@ class Tennis:
         :return the initial state
         """
         env_info = self.env.reset(train_mode=train_mode)["TennisBrain"]
-        log.info("Tennis environment reset with train_mode=%s", train_mode)
+        log.debug("Tennis environment reset with train_mode=%s", train_mode)
         return env_info.vector_observations
 
     def step(self, action: np.ndarray) -> StepResult:
