@@ -102,7 +102,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
             scores_deque.append(np.max(score))
             if episode_idx % print_every == 0:
                 log.info("%d Mean score over last %d episodes %f", episode_idx, scores_window, np.mean(scores_deque))
-            if np.mean(scores_deque) > 30:
+            if np.mean(scores_deque) > 0.5:
                 log.info("train success")
                 break
     except KeyboardInterrupt:
