@@ -17,33 +17,28 @@ logging.config.dictConfig(log_conf)
 log = logging.getLogger("agent")
 
 
+@click.group()
+def tennis():
+    pass
+
+
+@click.command(name="randomrun")
 def random_test_run():
-    """Take 100 randomly generated steps in the environment
+    """Take 1000 randomly generated steps in the environment
 
     In this interaction also interact with the Agent (to test this interaction while developing it)
     """
     env = Tennis()
-    agent = Agent(10000, action_size=4, actor_count=20, state_size=33)
-    state = env.reset(train_mode=False)
-    for step_idx in range(100):
+    env.reset(train_mode=False)
+    for step_idx in range(1000):
         # noinspection PyUnresolvedReferences
-        act_random = np.clip(np.random.randn(20, 4), -1, 1)
+        act_random = np.clip(np.random.randn(2, 2), -1, 1)
         step_result = env.step(act_random)
-        for agent_idx in range(20):
-            experience = Experience(state[agent_idx, :],
-                                    act_random[agent_idx, :],
-                                    step_result.rewards[agent_idx],
-                                    step_result.next_state[agent_idx, :],
-                                    step_result.done[agent_idx])
-            agent.record_experience(experience)
         if np.any(step_result.done):
-            break
-    agent.experiences.sample()
+            env.reset(train_mode=False)
 
 
-# random_test_run()
-
-@click.command()
+@click.command(name="train")
 @click.option('--number_episodes', default=100, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--run_id', help='Run id for this run.', type=int)
@@ -129,35 +124,50 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     np.save(scores_filename(scores_addition), np.array(scores_deque))
 
 
-def test_run(number_episodes: int = 100, print_every: int = 1, run_id=0, scores_window=100):
-    log.info("Run test with id %s", run_id)
+@click.command()
+@click.option('--number_episodes', default=100, help='Number of episodes to train for.')
+@click.option('--print_every', default=1, help='Print current score every this many episodes')
+@click.option('--run_id', help='Run id for this run.', type=int)
+def evaluation_run(number_episodes: int, print_every: int , run_id=0, scores_window=100):
+    log.info("Evaluate run with id %s", run_id)
     env = Tennis()
-    agent = Agent(replay_memory_size=100000, state_size=33, action_size=4, actor_count=20)
-    agent.load(run_id)
-    state = env.reset(train_mode=True)
+    agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-A-{run_id}")
+    agent_B = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-B-{run_id}")
+    assert agent_A.files_exist() and agent_B.files_exist()
+    agent_A.load()
+    agent_B.load()
+    state = env.reset(train_mode=False)
     scores = []
-    scores_deque = deque(maxlen=scores_window)
+    scores_deque_max = deque(maxlen=scores_window)
+    scores_deque_mean = deque(maxlen=scores_window)
     for episode_idx in range(number_episodes):
-        env.reset(train_mode=True)
-        score = 0
+        env.reset(train_mode=False)
+        score = np.zeros(2)
         ct = 0
         while True:
             ct += 1
-            # noinspection PyUnresolvedReferences
-            action = agent.get_action(state, add_noise=False)
-            step_result = env.step(action)
-            #print(step_result.rewards)
-            score += np.mean(step_result.rewards)
+            action_A = agent_A.get_action(state[0, :])
+            action_B = agent_B.get_action(state[1, :])
+            step_result = env.step(np.vstack([action_A, action_B]))
+            score += step_result.rewards
             if np.any(step_result.done):
                 break
             state = step_result.next_state
-        scores.append(score)
-        scores_deque.append(score)
+        scores.append(np.max(score))
+        scores_deque_max.append(np.max(score))
+        scores_deque_mean.append(np.mean(score))
         if episode_idx % print_every == 0:
-            log.info("%d Mean score over last %d episodes %f (%d)", episode_idx, scores_window, np.mean(scores_deque), ct)
+            log.info("%d/%d Mean score over last %d episodes max: %f mean: %f (episode length: %d)",
+                     episode_idx, number_episodes, scores_window,
+                     np.mean(scores_deque_max), np.mean(scores_deque_mean),
+                     ct)
 
-    np.save("evaluate-scores-{}.npy".format(run_id), np.array(scores_deque))
+    np.save("evaluation-scores-{}.npy".format(run_id), np.array(scores_deque_max))
 
+
+tennis.add_command(random_test_run, name="randomrun")
+tennis.add_command(train_run, name="train")
+tennis.add_command(evaluation_run, name="evaluate")
 
 if __name__ == "__main__":
-    train_run()
+    tennis()
