@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 import yaml
 from torch import optim
+import os.path
 
 from collabcompet.experience import Experience, Experiences
 from collabcompet.model import Actor, Critic
@@ -29,7 +30,7 @@ UPDATE_EVERY = 2        # do a learning update after this many recorded experien
 
 
 class Agent:
-    def __init__(self, replay_memory_size, actor_count, state_size, action_size, numpy_seed=36, random_seed=21, torch_seed=42):
+    def __init__(self, replay_memory_size, actor_count, state_size, action_size, run_id,  numpy_seed=36, random_seed=21, torch_seed=42):
         log.info("Random seeds, numpy %d, random %d, torch %d.", numpy_seed, random_seed, torch_seed)
         # seed all sources of randomness
         torch.manual_seed(torch_seed)
@@ -39,6 +40,7 @@ class Agent:
 
         self.experiences = Experiences(memory_size=replay_memory_size, batch_size=BATCH_SIZE)
 
+        self.run_id = run_id
         self.actor_count = actor_count
         self.state_size = state_size
         self.action_size = action_size
@@ -85,17 +87,29 @@ class Agent:
             action += self.noise.sample()
         return action
 
-    def save(self, run_identifier: str) -> None:
-        torch.save(self.actor_local.state_dict(), "trained_model-actor_local-{id}.pth".format(id=run_identifier))
-        torch.save(self.actor_target.state_dict(), "trained_model-actor_target-{id}.pth".format(id=run_identifier))
-        torch.save(self.critic_local.state_dict(), "trained_model-critic_local-{id}.pth".format(id=run_identifier))
-        torch.save(self.critic_target.state_dict(), "trained_model-critic_target-{id}.pth".format(id=run_identifier))
+        Note: also checks that if any exist all exists.
+        """
+        f1 = os.path.isfile("trained_model-actor_local-{id}.pth".format(id=self.run_id))
+        f2 = os.path.isfile("trained_model-actor_target-{id}.pth".format(id=self.run_id))
+        f3 = os.path.isfile("trained_model-critic_local-{id}.pth".format(id=self.run_id))
+        f4 = os.path.isfile("trained_model-critic_target-{id}.pth".format(id=self.run_id))
+        all = np.all([f1, f2, f3, f4])
+        any = np.any([f1, f2, f3, f4])
+        if any:
+            assert all
+        return all
 
-    def load(self, run_identifier: str) -> None:
-        self.actor_local.load_state_dict(torch.load("trained_model-actor_local-{id}.pth".format(id=run_identifier)))
-        self.actor_target.load_state_dict(torch.load("trained_model-actor_target-{id}.pth".format(id=run_identifier)))
-        self.critic_local.load_state_dict(torch.load("trained_model-critic_local-{id}.pth".format(id=run_identifier)))
-        self.critic_target.load_state_dict(torch.load("trained_model-critic_target-{id}.pth".format(id=run_identifier)))
+    def save(self) -> None:
+        torch.save(self.actor_local.state_dict(), "trained_model-actor_local-{id}.pth".format(id=self.run_id))
+        torch.save(self.actor_target.state_dict(), "trained_model-actor_target-{id}.pth".format(id=self.run_id))
+        torch.save(self.critic_local.state_dict(), "trained_model-critic_local-{id}.pth".format(id=self.run_id))
+        torch.save(self.critic_target.state_dict(), "trained_model-critic_target-{id}.pth".format(id=self.run_id))
+
+    def load(self) -> None:
+        self.actor_local.load_state_dict(torch.load("trained_model-actor_local-{id}.pth".format(id=self.run_id)))
+        self.actor_target.load_state_dict(torch.load("trained_model-actor_target-{id}.pth".format(id=self.run_id)))
+        self.critic_local.load_state_dict(torch.load("trained_model-critic_local-{id}.pth".format(id=self.run_id)))
+        self.critic_target.load_state_dict(torch.load("trained_model-critic_target-{id}.pth".format(id=self.run_id)))
 
     def _learn(self):
         gamma = GAMMA

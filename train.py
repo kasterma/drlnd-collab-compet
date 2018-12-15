@@ -5,6 +5,7 @@ import logging.config
 from collections import deque
 
 import yaml
+import click
 
 from collabcompet import *
 import numpy as np
@@ -41,10 +42,16 @@ def random_test_run():
 
 # random_test_run()
 
-
-def train_run(number_episodes: int =1000, print_every: int =1, run_id=0, scores_window=100):
+@click.command()
+@click.option('--number_episodes', default=100, help='Number of episodes to train for.')
+@click.option('--print_every', default=1, help='Print current score every this many episodes')
+@click.option('--run_id', help='Run id for this run.', type=int)
+@click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
+def train_run(number_episodes: int, print_every: int, run_id: int, continue_run: bool, scores_window: int=100):
     """Perfor a training run
 
+    :param continue_run:
+    :param scores_window:
     :param number_episodes the number of episodes to run through
     :param max_t max length of an episode
     :param print_every give an update on progress after this many episodes
@@ -52,53 +59,65 @@ def train_run(number_episodes: int =1000, print_every: int =1, run_id=0, scores_
     """
     log.info("Run with id %s", run_id)
     env = Tennis()
-    agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1)
-    agent_B = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1)
-    state = env.reset(train_mode=False)
+    agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-A-{run_id}")
+    agent_B = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-B-{run_id}")
+    if continue_run:
+        log.info("Continuing run")
+        assert agent_A.files_exist() and agent_B.files_exist()
+        agent_A.load()
+        agent_B.load()
+    else:
+        log.info("Starting new run")
+        assert not agent_A.files_exist()
+        assert not agent_B.files_exist()
+    state = env.reset(train_mode=True)
     scores = []
     scores_deque = deque(maxlen=scores_window)
-    for episode_idx in range(number_episodes):
-        env.reset()
-        agent_A.reset()
-        agent_B.reset()
-        score = np.zeros(2)
-        while True:
-            action_A = agent_A.get_action(state[0, :])
-            action_B = agent_B.get_action(state[1, :])
-            step_result = env.step(np.vstack([action_A, action_B]))
-            experience_A = Experience(state[0, :],
-                                    action_A,
-                                    step_result.rewards[0],
-                                    step_result.next_state[0, :],
-                                    step_result.done[0])
-            agent_A.record_experience(experience_A)
-            experience_B = Experience(state[1, :],
-                                    action_B,
-                                    step_result.rewards[1],
-                                    step_result.next_state[1, :],
-                                    step_result.done[1])
-            agent_B.record_experience(experience_B)
-            print(step_result.rewards)
-            score += step_result.rewards # [agent_idx]  # TODO: score???
-            print(score)
-            if np.any(step_result.done):
+    try:
+        for episode_idx in range(number_episodes):
+            env.reset(train_mode=True)
+            agent_A.reset()
+            agent_B.reset()
+            score = np.zeros(2)
+            while True:
+                action_A = agent_A.get_action(state[0, :])
+                action_B = agent_B.get_action(state[1, :])
+                step_result = env.step(np.vstack([action_A, action_B]))
+                #print(np.vstack([action_A, action_B]))
+                experience_A = Experience(state[0, :],
+                                        action_A,
+                                        step_result.rewards[0],  # dummy to be filled in later
+                                        step_result.next_state[0, :],
+                                        step_result.done[0])
+                agent_A.record_experience(experience_A)
+                experience_B = Experience(state[1, :],
+                                        action_B,
+                                        step_result.rewards[1],   # dummy to be filled in later
+                                        step_result.next_state[1, :],
+                                        step_result.done[1])
+                agent_B.record_experience(experience_B)
+                # print(step_result.rewards)
+                score += step_result.rewards # [agent_idx]  # TODO: score???
+                # print(score)
+                if np.any(step_result.done):
+                    break
+                state = step_result.next_state
+            # TODO: scores max of two players
+            assert score.shape == (2,)
+            scores.append(np.max(score))
+            scores_deque.append(np.max(score))
+            if episode_idx % print_every == 0:
+                log.info("%d Mean score over last %d episodes %f", episode_idx, scores_window, np.mean(scores_deque))
+            if np.mean(scores_deque) > 30:
+                log.info("train success")
                 break
-            state = step_result.next_state
-        # TODO: scores max of two players
-        scores.append(score/2)
-        scores_deque.append(score/2)
-        if episode_idx % print_every == 0:
-            log.info("%d Mean score over last %d episodes %f", episode_idx, scores_window, np.mean(scores_deque))
-        if np.mean(scores_deque) > 30:
-            log.info("train success")
-            break
+    except KeyboardInterrupt:
+        log.info("Stopped early by keyboard interrupt")
     log.info("Saving models under id %s", run_id)
-    agent_A.save(f"agent-A-{run_id}")
-    agent_B.save(f"agent-B-{run_id}")
+    agent_A.save()
+    agent_B.save()
     log.info("Saving scores to file scores-%d.npy", run_id)
     np.save("scores-{}.npy".format(run_id), np.array(scores_deque))
-
-train_run(run_id=0)
 
 
 def test_run(number_episodes: int = 100, print_every: int = 1, run_id=0, scores_window=100):
@@ -131,4 +150,5 @@ def test_run(number_episodes: int = 100, print_every: int = 1, run_id=0, scores_
     np.save("evaluate-scores-{}.npy".format(run_id), np.array(scores_deque))
 
 
-#test_run(run_id=2)
+if __name__ == "__main__":
+    train_run()
