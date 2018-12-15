@@ -119,7 +119,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     def scores_filename(idx):
         """Create scores filename"""
         base = "scores-{}".format(run_id)
-        idx_p = f"-{idx}" if idx == 0 else ""
+        idx_p = f"-{idx}" if idx != 0 else ""
         ext = ".npy"
         return base + idx_p + ext
     scores_addition = 0
