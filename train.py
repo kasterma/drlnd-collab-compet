@@ -83,26 +83,24 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
                 action_A = agent_A.get_action(state[0, :])
                 action_B = agent_B.get_action(state[1, :])
                 step_result = env.step(np.vstack([action_A, action_B]))
-                #print(np.vstack([action_A, action_B]))
                 experience_A = Experience(state[0, :],
                                         action_A,
-                                        step_result.rewards[0],  # dummy to be filled in later
+                                        step_result.rewards[0],
                                         step_result.next_state[0, :],
                                         step_result.done[0])
                 agent_A.record_experience(experience_A)
                 experience_B = Experience(state[1, :],
                                         action_B,
-                                        step_result.rewards[1],   # dummy to be filled in later
+                                        step_result.rewards[1],
                                         step_result.next_state[1, :],
                                         step_result.done[1])
                 agent_B.record_experience(experience_B)
                 # print(step_result.rewards)
-                score += step_result.rewards # [agent_idx]  # TODO: score???
+                score += step_result.rewards
                 # print(score)
                 if np.any(step_result.done):
                     break
                 state = step_result.next_state
-            # TODO: scores max of two players
             assert score.shape == (2,)
             scores.append(np.max(score))
             scores_deque.append(np.max(score))
