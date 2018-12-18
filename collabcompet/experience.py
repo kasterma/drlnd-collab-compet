@@ -11,13 +11,23 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class Experience:
     """Wrapper class for an experience as received from the environment"""
 
-    def __init__(self, state: np.ndarray, action: np.ndarray, reward: float, next_state: np.ndarray, done: bool):
-        assert state.shape == (24,)
+    def __init__(self, state: np.ndarray, action: np.ndarray, reward: float, next_state: np.ndarray, done: bool,
+                 joint=False):
+        if joint:
+            assert state.shape == (2, 24)
+        else:
+            assert state.shape == (24,)
         self.state = state
-        assert action.shape == (2,)
+        if joint:
+            assert action.shape == (2, 2)
+        else:
+            assert action.shape == (2,)
         self.action = action
         self.reward = reward
-        assert next_state.shape == (24,)
+        if joint:
+            assert next_state.shape == (2, 24)
+        else:
+            assert next_state.shape == (24,)
         self.next_state = next_state
         self.done = done
 

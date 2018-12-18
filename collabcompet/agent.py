@@ -1,3 +1,11 @@
+"""The agents used during the development of this project.
+
+@{link Agent} is the basic DDPG agent.
+
+@{link IndependentAgent} consists of two DDPG agents acting independently.
+
+@{link JointCriticAgent} consists of two DDPG agents sharing a critic.
+"""
 import logging.config
 import random
 
@@ -8,6 +16,7 @@ import yaml
 from torch import optim
 import os.path
 
+from abc import ABC, abstractmethod
 from collabcompet.experience import Experience, Experiences
 from collabcompet.model import Actor, Critic
 from collabcompet.noise import OUNoise
@@ -20,17 +29,40 @@ logging.config.dictConfig(log_conf)
 log = logging.getLogger("agent")
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 128        # minibatch size
-GAMMA = 0.99            # discount factor
-TAU = 1e-3              # for soft update of target parameters
-LR_ACTOR = 1e-4         # learning rate of the actor
-LR_CRITIC = 1e-4        # learning rate of the critic
-WEIGHT_DECAY = 0        # L2 weight decay
-UPDATE_EVERY = 2        # do a learning update after this many recorded experiences
+BATCH_SIZE = 256  # minibatch size
+GAMMA = 1.0  # discount factor
+TAU = 1e-2  # for soft update of target parameters
+LR_ACTOR = 1e-4  # learning rate of the actor
+LR_CRITIC = 1e-3  # learning rate of the critic
+WEIGHT_DECAY = 0.5  # L2 weight decay
+UPDATE_EVERY = 1  # do a learning update after this many recorded experiences
+
+
+class AgentInterface(ABC):
+    @abstractmethod
+    def reset(self, idx=None):
+        pass
+
+    @abstractmethod
+    def record_experience(self, experience: Experience):
+        pass
+
+    @abstractmethod
+    def get_action(self, state: np.ndarray, add_noise=True) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def save(self) -> None:
+        pass
+
+    @abstractmethod
+    def load(self) -> None:
+        pass
 
 
 class Agent:
-    def __init__(self, replay_memory_size, actor_count, state_size, action_size, run_id,  numpy_seed=36, random_seed=21, torch_seed=42):
+    def __init__(self, replay_memory_size, actor_count, state_size, action_size, run_id, numpy_seed=36, random_seed=21,
+                 torch_seed=42):
         log.info("Random seeds, numpy %d, random %d, torch %d.", numpy_seed, random_seed, torch_seed)
         # seed all sources of randomness
         torch.manual_seed(torch_seed)
@@ -48,7 +80,7 @@ class Agent:
         # Actor Network (w/ Target Network)
         self.actor_local = Actor(state_size, action_size).to(device)
         self.actor_target = self.actor_local.get_copy()
-        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
+        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(state_size, action_size).to(device)
@@ -68,7 +100,7 @@ class Agent:
         integer.  Otherwise it is just a restart of the noise process.
         """
         if idx:
-            self.noise = OUNoise(self.action_size, mu=0.0, theta=1/(idx + 2), sigma=1/(idx + 2))
+            self.noise = OUNoise(self.action_size, mu=0.0, theta=1 / (idx + 2), sigma=1 / (idx + 2))
         else:
             self.noise.reset()
 
@@ -162,4 +194,54 @@ class Agent:
         is).
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
+
+
+class IndependentAgent(AgentInterface):
+    """Run the training with two completely independent DDPG agents.
+    """
+    def __init__(self, run_id):
+        self.agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1,
+                             run_id=f"agent-A-{run_id}")
+        self.agent_B = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1,
+                             run_id=f"agent-B-{run_id}")
+
+    def reset(self, idx=None):
+        self.agent_A.reset()
+        self.agent_B.reset()
+
+    def record_experience(self, experience: Experience):
+        experience_A = Experience(experience.state[0, :],
+                                  experience.action[0,:],
+                                  experience.reward[0],
+                                  experience.next_state[0, :],
+                                  experience.done[0])
+        self.agent_A.record_experience(experience_A)
+        experience_B = Experience(experience.state[1, :],
+                                  experience.action[1, :],
+                                  experience.reward[1],
+                                  experience.next_state[1, :],
+                                  experience.done[1])
+        self.agent_B.record_experience(experience_B)
+
+    def get_action(self, state: np.ndarray, add_noise=True) -> np.ndarray:
+        action_A = self.agent_A.get_action(state[0, :])
+        action_B = self.agent_B.get_action(state[1, :])
+        return np.vstack([action_A, action_B])
+
+    def save(self) -> None:
+        self.agent_A.save()
+        self.agent_B.save()
+
+    def load(self) -> None:
+        assert self.agent_A.files_exist() and self.agent_B.files_exist()
+        self.agent_A.load()
+        self.agent_B.load()
+
+    def files_exist(self) -> bool:
+        """Check if the model files exit.
+
+        Since in the normal course of use of this code either both or neither files exists we check for the disjunction
+        of both files_exists.
+        """
+        return self.agent_A.files_exist() or self.agent_B.files_exist()

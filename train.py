@@ -11,6 +11,8 @@ import os.path
 from collabcompet import *
 import numpy as np
 
+from collabcompet.agent import IndependentAgent
+
 with open("logging.yaml") as log_conf_file:
     log_conf = yaml.load(log_conf_file)
 logging.config.dictConfig(log_conf)
@@ -39,7 +41,7 @@ def random_test_run():
 
 
 @click.command(name="train")
-@click.option('--number_episodes', default=100, help='Number of episodes to train for.')
+@click.option('--number_episodes', default=4000, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--run_id', help='Run id for this run.', type=int)
 @click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
@@ -55,42 +57,27 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     """
     log.info("Run with id %s", run_id)
     env = Tennis()
-    agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-A-{run_id}")
-    agent_B = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-B-{run_id}")
+    agent = IndependentAgent(run_id = run_id)
     if continue_run:
         log.info("Continuing run")
-        assert agent_A.files_exist() and agent_B.files_exist()
-        agent_A.load()
-        agent_B.load()
+        agent.load()
     else:
         log.info("Starting new run")
-        assert not agent_A.files_exist()
-        assert not agent_B.files_exist()
+        assert not agent.files_exist()
     state = env.reset(train_mode=True)
     scores = []
     scores_deque = deque(maxlen=scores_window)
     try:
         for episode_idx in range(number_episodes):
             env.reset(train_mode=True)
-            agent_A.reset()
-            agent_B.reset()
+            agent.reset()
             score = np.zeros(2)
             while True:
-                action_A = agent_A.get_action(state[0, :])
-                action_B = agent_B.get_action(state[1, :])
-                step_result = env.step(np.vstack([action_A, action_B]))
-                experience_A = Experience(state[0, :],
-                                        action_A,
-                                        step_result.rewards[0],
-                                        step_result.next_state[0, :],
-                                        step_result.done[0])
-                agent_A.record_experience(experience_A)
-                experience_B = Experience(state[1, :],
-                                        action_B,
-                                        step_result.rewards[1],
-                                        step_result.next_state[1, :],
-                                        step_result.done[1])
-                agent_B.record_experience(experience_B)
+                action = agent.get_action(state)
+                step_result = env.step(action)
+                experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
+                                        joint=True)
+                agent.record_experience(experience)
                 # print(step_result.rewards)
                 score += step_result.rewards
                 # print(score)
@@ -108,8 +95,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     except KeyboardInterrupt:
         log.info("Stopped early by keyboard interrupt")
     log.info("Saving models under id %s", run_id)
-    agent_A.save()
-    agent_B.save()
+    agent.save()
 
     def scores_filename(idx):
         """Create scores filename"""
