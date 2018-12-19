@@ -1,0 +1,9 @@
+buffer_size: 10000
+batch_size: 1024
+gamma: 1.0
+tau: 1e-2
+learning_rate_actor: 1e-4
+learning_rate_critic: 1e-3
+weight_decay: 0
+update_every: 1
+data_dir: "data/"

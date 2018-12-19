@@ -30,16 +30,21 @@ with open("logging.yaml") as log_conf_file:
 logging.config.dictConfig(log_conf)
 log = logging.getLogger("agent")
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 256  # minibatch size
-GAMMA = 1.0  # discount factor
-TAU = 1e-2  # for soft update of target parameters
-LR_ACTOR = 1e-4  # learning rate of the actor
-LR_CRITIC = 1e-3  # learning rate of the critic
-WEIGHT_DECAY = 0.5  # L2 weight decay
-UPDATE_EVERY = 1  # do a learning update after this many recorded experiences
+with open("config.yaml") as conf_file:
+    conf = yaml.load(conf_file)
 
-DATA_DIR = "data/"
+BUFFER_SIZE = conf['buffer_size']
+BATCH_SIZE = conf['batch_size']
+GAMMA = float(conf['gamma'])
+TAU = float(conf['tau'])
+LR_ACTOR = float(conf['learning_rate_actor'])
+LR_CRITIC = float(conf['learning_rate_critic'])
+WEIGHT_DECAY = conf['weight_decay']
+UPDATE_EVERY = conf['update_every']
+
+DATA_DIR = conf['data_dir']
+
+log.info("Configuration %s", yaml.dump(conf))
 
 
 class AgentInterface(ABC):
@@ -305,7 +310,7 @@ class SharedCritic(AgentInterface):
 
         # Critic Network
         # note gets the actions and observations from both actors and hence has sizes twice as large
-        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=2).to(device)
+        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count).to(device)
         self.critic_target = self.critic_local.get_copy()
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
