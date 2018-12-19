@@ -11,6 +11,7 @@ import random
 
 import numpy as np
 import torch
+# noinspection PyPep8Naming
 import torch.nn.functional as F
 import yaml
 from torch import optim
@@ -153,11 +154,11 @@ class Agent(AgentInterface):
         f2 = os.path.isfile("{dir}trained_model-actor_target-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
         f3 = os.path.isfile("{dir}trained_model-critic_local-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
         f4 = os.path.isfile("{dir}trained_model-critic_target-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
-        all = np.all([f1, f2, f3, f4])
-        any = np.any([f1, f2, f3, f4])
-        if any:
-            assert all
-        return all
+        all_files = np.all([f1, f2, f3, f4])
+        any_files = np.any([f1, f2, f3, f4])
+        if any_files:
+            assert all_files
+        return all_files
 
     def save(self) -> None:
         torch.save(self.actor_local.state_dict(), "{dir}trained_model-actor_local-{id}.pth"
@@ -187,12 +188,12 @@ class Agent(AgentInterface):
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
         actions_next = self.actor_target(next_states)
-        Q_targets_next = self.critic_target(next_states, actions_next)
+        q_targets_next = self.critic_target(next_states, actions_next)
         # Compute Q targets for current states (y_i)
-        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
+        q_targets = rewards + (gamma * q_targets_next * (1 - dones))
         # Compute critic loss
-        Q_expected = self.critic_local(states, actions)
-        critic_loss = F.mse_loss(Q_expected, Q_targets)
+        q_expected = self.critic_local(states, actions)
+        critic_loss = F.mse_loss(q_expected, q_targets)
         # Minimize the loss
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
@@ -228,23 +229,23 @@ class IndependentAgent(AgentInterface):
         self.agent_B.reset()
 
     def record_experience(self, experience: Experience):
-        experience_A = Experience(experience.state[0, :],
+        experience_a = Experience(experience.state[0, :],
                                   experience.action[0, :],
                                   experience.reward[0],
                                   experience.next_state[0, :],
                                   experience.done[0])
-        self.agent_A.record_experience(experience_A)
-        experience_B = Experience(experience.state[1, :],
+        self.agent_A.record_experience(experience_a)
+        experience_b = Experience(experience.state[1, :],
                                   experience.action[1, :],
                                   experience.reward[1],
                                   experience.next_state[1, :],
                                   experience.done[1])
-        self.agent_B.record_experience(experience_B)
+        self.agent_B.record_experience(experience_b)
 
     def get_action(self, state: np.ndarray, add_noise=True) -> np.ndarray:
-        action_A = self.agent_A.get_action(state[0, :])
-        action_B = self.agent_B.get_action(state[1, :])
-        return np.vstack([action_A, action_B])
+        action_a = self.agent_A.get_action(state[0, :])
+        action_b = self.agent_B.get_action(state[1, :])
+        return np.vstack([action_a, action_b])
 
     def save(self) -> None:
         self.agent_A.save()

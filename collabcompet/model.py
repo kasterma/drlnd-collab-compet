@@ -5,12 +5,12 @@
 # random initialized values.  However cleaner to me is to create a get_copy function which makes the reuse of values
 # explicit.
 
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
-
 import torch
 import torch.nn as nn
+# noinspection PyPep8Naming
 import torch.nn.functional as F
 
 
@@ -18,7 +18,7 @@ def hidden_init(layer) -> Tuple[float, float]:
     fan_in = layer.weight.data.size()[0]
     # noinspection PyUnresolvedReferences
     lim = 1. / np.sqrt(fan_in)
-    return (-lim, lim)
+    return -lim, lim
 
 
 class Actor(nn.Module):
@@ -53,6 +53,7 @@ class Actor(nn.Module):
         """Build an actor (policy) network that maps states -> actions."""
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
+        # noinspection PyUnresolvedReferences
         return torch.tanh(self.fc3(x))
 
     def get_copy(self) -> 'Actor':
