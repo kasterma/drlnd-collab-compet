@@ -305,7 +305,7 @@ class SharedCritic(AgentInterface):
 
         # Critic Network
         # note gets the actions and observations from both actors and hence has sizes twice as large
-        self.critic_local = Critic(2 * state_size, 2 * action_size).to(device)
+        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=2).to(device)
         self.critic_target = self.critic_local.get_copy()
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
@@ -387,8 +387,10 @@ class SharedCritic(AgentInterface):
         assert actions_next.shape == (BATCH_SIZE, self.actor_count * self.action_size)
 
         q_targets_next = self.critic_target(next_states, actions_next)
+        assert q_targets_next.shape == torch.Size((BATCH_SIZE, 2))
         # Compute Q targets for current states (y_i)
         q_targets = rewards + (gamma * q_targets_next * (1 - dones))
+        assert q_targets.shape == torch.Size((BATCH_SIZE, self.actor_count))
         # Compute critic loss
         q_expected = self.critic_local(states, actions)
         critic_loss = F.mse_loss(q_expected, q_targets)
@@ -402,7 +404,7 @@ class SharedCritic(AgentInterface):
         actions_1_pred = self.actor_1_local(states[:, :self.state_size])
         assert actions_1_pred.shape == (BATCH_SIZE, self.action_size)
         assert torch.cat([actions[:,:2], actions_1_pred], 1).shape == (BATCH_SIZE, self.action_size * 2)
-        actor_1_loss = -self.critic_local(states, torch.cat([actions[:,:2], actions_1_pred], 1)).mean()
+        actor_1_loss = -self.critic_local(states, torch.cat([actions_1_pred, actions[:, 2:]], 1))[:, 0].mean()
         # Minimize the loss
         self.actor_1_optimizer.zero_grad()
         actor_1_loss.backward()
@@ -410,7 +412,7 @@ class SharedCritic(AgentInterface):
 
         # Compute actor loss
         actions_2_pred = self.actor_2_local(states[:, self.state_size:])
-        actor_2_loss = -self.critic_local(states, torch.cat([actions[:,2:], actions_2_pred], 1)).mean()
+        actor_2_loss = -self.critic_local(states, torch.cat([actions[:, :2], actions_2_pred], 1))[:, 1].mean()
         # Minimize the loss
         self.actor_2_optimizer.zero_grad()
         actor_2_loss.backward()

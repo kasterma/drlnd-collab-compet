@@ -66,17 +66,16 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, fcs1_units=150, fc2_units=75):
-        """Initialize parameters and build model.
-        Params
-        ======
-            state_size (int): Dimension of each state
-            action_size (int): Dimension of each action
-            seed (int): Random seed
-            fcs1_units (int): Number of nodes in the first hidden layer
-            fc2_units (int): Number of nodes in the second hidden layer
+    def __init__(self, state_size, action_size, agent_count=1, fcs1_units=150, fc2_units=75):
+        """
+        :param state_size: size of the per agent state
+        :param action_size: size of the per agent actions
+        :param agent_count: number of agents to have critics for
+        :param fcs1_units:
+        :param fc2_units:
         """
         super(Critic, self).__init__()
+        self.agent_count = agent_count
         self.state_size = state_size
         self.action_size = action_size
         self.fc1_units = fcs1_units
@@ -84,7 +83,7 @@ class Critic(nn.Module):
 
         self.fcs1 = nn.Linear(state_size, fcs1_units)
         self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
-        self.fc3 = nn.Linear(fc2_units, 1)
+        self.fc3 = nn.Linear(fc2_units, self.agent_count)
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -101,7 +100,7 @@ class Critic(nn.Module):
         return self.fc3(x)
 
     def get_copy(self) -> 'Critic':
-        copy = Critic(self.state_size, self.action_size, self.fc1_units, self.fc2_units)
+        copy = Critic(self.state_size, self.action_size, self.agent_count, self.fc1_units, self.fc2_units)
         for copy_param, self_param in zip(copy.parameters(), self.parameters()):
             copy_param.data.copy_(self_param.data)
         return copy
