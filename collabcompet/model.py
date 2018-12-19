@@ -24,7 +24,7 @@ def hidden_init(layer) -> Tuple[float, float]:
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, fc1_units=150, fc2_units=75):
+    def __init__(self, state_size, action_size, fc1_units=75, fc2_units=50):
         """Initialize parameters and build model.
         Params
         ======
@@ -66,7 +66,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, agent_count=1, fcs1_units=150, fc2_units=75):
+    def __init__(self, state_size, action_size, agent_count=1, fcs1_units=75, fc2_units=50):
         """
         :param state_size: size of the per agent state
         :param action_size: size of the per agent actions
