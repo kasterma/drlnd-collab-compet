@@ -18,6 +18,8 @@ with open("logging.yaml") as log_conf_file:
 logging.config.dictConfig(log_conf)
 log = logging.getLogger("agent")
 
+DATA_DIR = "data/"
+
 
 @click.group()
 def tennis():
@@ -98,7 +100,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
 
     def scores_filename(idx):
         """Create scores filename"""
-        base = "scores-{}".format(run_id)
+        base = DATA_DIR + "scores-{}".format(run_id)
         idx_p = f"-{idx}" if idx != 0 else ""
         ext = ".npy"
         return base + idx_p + ext
@@ -147,7 +149,7 @@ def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_wind
                      np.mean(scores_deque_max), np.mean(scores_deque_mean),
                      ct)
 
-    np.save("evaluation-scores-{}.npy".format(run_id), np.array(scores_deque_max))
+    np.save(DATA_DIR + "evaluation-scores-{}.npy".format(run_id), np.array(scores_deque_max))
 
 
 tennis.add_command(random_test_run, name="randomrun")

@@ -38,6 +38,8 @@ LR_CRITIC = 1e-3  # learning rate of the critic
 WEIGHT_DECAY = 0.5  # L2 weight decay
 UPDATE_EVERY = 1  # do a learning update after this many recorded experiences
 
+DATA_DIR = "data/"
+
 
 class AgentInterface(ABC):
     @abstractmethod
@@ -147,10 +149,10 @@ class Agent(AgentInterface):
 
         Note: also checks that if any exist all exists.
         """
-        f1 = os.path.isfile("trained_model-actor_local-{id}.pth".format(id=self.run_id))
-        f2 = os.path.isfile("trained_model-actor_target-{id}.pth".format(id=self.run_id))
-        f3 = os.path.isfile("trained_model-critic_local-{id}.pth".format(id=self.run_id))
-        f4 = os.path.isfile("trained_model-critic_target-{id}.pth".format(id=self.run_id))
+        f1 = os.path.isfile("{dir}trained_model-actor_local-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
+        f2 = os.path.isfile("{dir}trained_model-actor_target-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
+        f3 = os.path.isfile("{dir}trained_model-critic_local-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
+        f4 = os.path.isfile("{dir}trained_model-critic_target-{id}.pth".format(dir=DATA_DIR, id=self.run_id))
         all = np.all([f1, f2, f3, f4])
         any = np.any([f1, f2, f3, f4])
         if any:
@@ -158,16 +160,24 @@ class Agent(AgentInterface):
         return all
 
     def save(self) -> None:
-        torch.save(self.actor_local.state_dict(), "trained_model-actor_local-{id}.pth".format(id=self.run_id))
-        torch.save(self.actor_target.state_dict(), "trained_model-actor_target-{id}.pth".format(id=self.run_id))
-        torch.save(self.critic_local.state_dict(), "trained_model-critic_local-{id}.pth".format(id=self.run_id))
-        torch.save(self.critic_target.state_dict(), "trained_model-critic_target-{id}.pth".format(id=self.run_id))
+        torch.save(self.actor_local.state_dict(), "{dir}trained_model-actor_local-{id}.pth"
+                   .format(dir=DATA_DIR, id=self.run_id))
+        torch.save(self.actor_target.state_dict(), "{dir}trained_model-actor_target-{id}.pth"
+                   .format(dir=DATA_DIR, id=self.run_id))
+        torch.save(self.critic_local.state_dict(), "{dir}trained_model-critic_local-{id}.pth"
+                   .format(dir=DATA_DIR, id=self.run_id))
+        torch.save(self.critic_target.state_dict(), "{dir}trained_model-critic_target-{id}.pth"
+                   .format(dir=DATA_DIR, id=self.run_id))
 
     def load(self) -> None:
-        self.actor_local.load_state_dict(torch.load("trained_model-actor_local-{id}.pth".format(id=self.run_id)))
-        self.actor_target.load_state_dict(torch.load("trained_model-actor_target-{id}.pth".format(id=self.run_id)))
-        self.critic_local.load_state_dict(torch.load("trained_model-critic_local-{id}.pth".format(id=self.run_id)))
-        self.critic_target.load_state_dict(torch.load("trained_model-critic_target-{id}.pth".format(id=self.run_id)))
+        self.actor_local.load_state_dict(torch.load("{dir}trained_model-actor_local-{id}.pth"
+                                                    .format(dir=DATA_DIR, id=self.run_id)))
+        self.actor_target.load_state_dict(torch.load("{dir}trained_model-actor_target-{id}.pth"
+                                                     .format(dir=DATA_DIR, id=self.run_id)))
+        self.critic_local.load_state_dict(torch.load("{dir}trained_model-critic_local-{id}.pth"
+                                                     .format(dir=DATA_DIR, id=self.run_id)))
+        self.critic_target.load_state_dict(torch.load("{dir}trained_model-critic_target-{id}.pth"
+                                                      .format(dir=DATA_DIR, id=self.run_id)))
 
     def _learn(self):
         gamma = GAMMA
@@ -206,6 +216,7 @@ class Agent(AgentInterface):
 class IndependentAgent(AgentInterface):
     """Run the training with two completely independent DDPG agents.
     """
+
     def __init__(self, run_id):
         self.agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1,
                              run_id=f"agent-A-{run_id}")
@@ -218,7 +229,7 @@ class IndependentAgent(AgentInterface):
 
     def record_experience(self, experience: Experience):
         experience_A = Experience(experience.state[0, :],
-                                  experience.action[0,:],
+                                  experience.action[0, :],
                                   experience.reward[0],
                                   experience.next_state[0, :],
                                   experience.done[0])
