@@ -11,7 +11,7 @@ import os.path
 from collabcompet import *
 import numpy as np
 
-from collabcompet.agent import IndependentAgent
+from collabcompet.agents import IndependentAgent
 
 with open("logging.yaml") as log_conf_file:
     log_conf = yaml.load(log_conf_file)
@@ -46,18 +46,17 @@ def random_test_run():
 @click.option('--run_id', help='Run id for this run.', type=int)
 @click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
 def train_run(number_episodes: int, print_every: int, run_id: int, continue_run: bool, scores_window: int=100):
-    """Perfor a training run
+    """Perform a training run
 
     :param continue_run:
     :param scores_window:
     :param number_episodes the number of episodes to run through
-    :param max_t max length of an episode
     :param print_every give an update on progress after this many episodes
     :param run_id id to use in saving models
     """
     log.info("Run with id %s", run_id)
     env = Tennis()
-    agent = IndependentAgent(run_id = run_id)
+    agent: AgentInterface = IndependentAgent(run_id=run_id)
     if continue_run:
         log.info("Continuing run")
         agent.load()
@@ -114,14 +113,14 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
 @click.option('--number_episodes', default=100, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--run_id', help='Run id for this run.', type=int)
-def evaluation_run(number_episodes: int, print_every: int , run_id=0, scores_window=100):
+def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_window=100):
     log.info("Evaluate run with id %s", run_id)
     env = Tennis()
-    agent_A = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-A-{run_id}")
-    agent_B = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-B-{run_id}")
-    assert agent_A.files_exist() and agent_B.files_exist()
-    agent_A.load()
-    agent_B.load()
+    agent_a = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-A-{run_id}")
+    agent_b = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-B-{run_id}")
+    assert agent_a.files_exist() and agent_b.files_exist()
+    agent_a.load()
+    agent_b.load()
     state = env.reset(train_mode=False)
     scores = []
     scores_deque_max = deque(maxlen=scores_window)
@@ -132,9 +131,9 @@ def evaluation_run(number_episodes: int, print_every: int , run_id=0, scores_win
         ct = 0
         while True:
             ct += 1
-            action_A = agent_A.get_action(state[0, :])
-            action_B = agent_B.get_action(state[1, :])
-            step_result = env.step(np.vstack([action_A, action_B]))
+            action_a = agent_a.get_action(state[0, :])
+            action_b = agent_b.get_action(state[1, :])
+            step_result = env.step(np.vstack([action_a, action_b]))
             score += step_result.rewards
             if np.any(step_result.done):
                 break

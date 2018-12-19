@@ -17,10 +17,11 @@ from torch import optim
 import os.path
 
 from abc import ABC, abstractmethod
-from collabcompet.experience import Experience, Experiences
+from collabcompet.experiences import Experience, Experiences
 from collabcompet.model import Actor, Critic
 from collabcompet.noise import OUNoise
 
+# noinspection PyUnresolvedReferences
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 with open("logging.yaml") as log_conf_file:
@@ -59,8 +60,24 @@ class AgentInterface(ABC):
     def load(self) -> None:
         pass
 
+    @abstractmethod
+    def files_exist(self) -> bool:
+        pass
 
-class Agent:
+    @staticmethod
+    def _soft_update(local_model, target_model, tau):
+        """Move the weights from the target_model in the direction of the local_model.
+
+        The parameter tau determines how far this move is, we take a convex combination of the target and local weights
+        where as tau increases we take the combination closer to the local parameters (tau equal to 1 would replace
+        the target model with the local model, tau equal to 0 would perform no update and leave the target model as it
+        is).
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
+
+
+class Agent(AgentInterface):
     def __init__(self, replay_memory_size, actor_count, state_size, action_size, run_id, numpy_seed=36, random_seed=21,
                  torch_seed=42):
         log.info("Random seeds, numpy %d, random %d, torch %d.", numpy_seed, random_seed, torch_seed)
@@ -115,6 +132,7 @@ class Agent:
         assert state.shape == (24,)
         self.actor_local.eval()
         with torch.no_grad():
+            # noinspection PyUnresolvedReferences
             action = self.actor_local(torch.from_numpy(state).float().to(device)).cpu().numpy()
         if add_noise:
             n = self.noise.sample()
@@ -183,18 +201,6 @@ class Agent:
         Agent._soft_update(self.critic_local, self.critic_target, TAU)
 
         Agent._soft_update(self.actor_local, self.actor_target, TAU)
-
-    @staticmethod
-    def _soft_update(local_model, target_model, tau):
-        """Move the weights from the target_model in the direction of the local_model.
-
-        The parameter tau determines how far this move is, we take a convex combination of the target and local weights
-        where as tau increases we take the combination closer to the local parameters (tau equal to 1 would replace
-        the target model with the local model, tau equal to 0 would perform no update and leave the target model as it
-        is).
-        """
-        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
 
 class IndependentAgent(AgentInterface):

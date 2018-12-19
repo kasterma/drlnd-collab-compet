@@ -5,6 +5,7 @@ from typing import Tuple
 import numpy as np
 import torch
 
+# noinspection PyUnresolvedReferences
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -71,7 +72,7 @@ class Experiences:
         actions_tensor = to_float_tensor([e.action for e in sample])
         rewards_tensor = to_float_tensor([e.reward for e in sample])
         next_states_tensor = to_float_tensor([e.next_state for e in sample])
-        dones_tensor = to_float_tensor(np.array([e.done for e in sample], dtype=np.uint8))   # need to preprocess the booleans
+        dones_tensor = to_float_tensor(np.array([e.done for e in sample], dtype=np.uint8))
 
         return states_tensor, actions_tensor, rewards_tensor, next_states_tensor, dones_tensor
 

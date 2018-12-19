@@ -1,3 +1,3 @@
 from collabcompet.tennis import Tennis
-from collabcompet.agent import Agent
-from collabcompet.experience import Experience
+from collabcompet.agents import Agent, AgentInterface
+from collabcompet.experiences import Experience
