@@ -1,6 +1,6 @@
 """The agents used during the development of this project.
 
-@{link Agent} is the basic DDPG agent.
+@{link Agent} is the basic DDPG agent as was used in the continuous project.
 
 @{link IndependentAgent} consists of two DDPG agents acting independently.
 
@@ -263,3 +263,160 @@ class IndependentAgent(AgentInterface):
         of both files_exists.
         """
         return self.agent_A.files_exist() or self.agent_B.files_exist()
+
+
+class SharedCritic(AgentInterface):
+
+    def __init__(self, replay_memory_size, actor_count, state_size, action_size, run_id, numpy_seed=36, random_seed=21,
+                 torch_seed=42):
+        """
+
+        :param replay_memory_size:
+        :param state_size: observation space size for a single agent
+        :param action_size: action space size for a single agent
+        :param run_id:
+        :param numpy_seed:
+        :param random_seed:
+        :param torch_seed:
+        """
+        log.info("Random seeds, numpy %d, random %d, torch %d.", numpy_seed, random_seed, torch_seed)
+        # seed all sources of randomness
+        torch.manual_seed(torch_seed)
+        # noinspection PyUnresolvedReferences
+        np.random.seed(seed=numpy_seed)
+        random.seed(random_seed)
+
+        self.experiences = Experiences(memory_size=replay_memory_size, batch_size=BATCH_SIZE)
+
+        self.run_id = run_id
+        self.actor_count = actor_count
+        self.state_size = state_size
+        self.action_size = action_size
+
+        # First actor Network
+        self.actor_1_local = Actor(state_size, action_size).to(device)
+        self.actor_1_target = self.actor_1_local.get_copy()
+        self.actor_1_optimizer = optim.Adam(self.actor_1_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
+
+        # Second actor network
+        self.actor_2_local = Actor(state_size, action_size).to(device)
+        self.actor_2_target = self.actor_2_local.get_copy()
+        self.actor_2_optimizer = optim.Adam(self.actor_2_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
+
+        # Critic Network
+        # note gets the actions and observations from both actors and hence has sizes twice as large
+        self.critic_local = Critic(2 * state_size, 2 * action_size).to(device)
+        self.critic_target = self.critic_local.get_copy()
+        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
+
+        # Noise process
+        self.noise = OUNoise((self.actor_count, self.action_size))
+
+        self.step_count = 0
+        self.update_every = UPDATE_EVERY
+
+        self.actor_1_local_filename = "{dir}trained_model-actor_local_1-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
+        self.actor_1_target_filename = "{dir}trained_model-actor_target_1-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
+        self.actor_2_local_filename = "{dir}trained_model-actor_local_2-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
+        self.actor_2_target_filename = "{dir}trained_model-actor_target_2-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
+        self.critic_local_filename = "{dir}trained_model-critic_local-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
+        self.critic_target_filename = "{dir}trained_model-critic_target-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
+
+    def reset(self, idx=None):
+        self.noise.reset()
+
+    def record_experience(self, experience: Experience):
+        self.experiences.add(experience)
+        self.step_count += 1
+        if len(self.experiences) > BATCH_SIZE and self.step_count % self.update_every == 0:
+            log.debug("Doing a learning step")
+            self._learn()
+
+    # noinspection PyUnresolvedReferences
+    def get_action(self, state: np.ndarray, add_noise=True) -> np.ndarray:
+        assert state.shape == (self.actor_count, self.state_size)
+        self.actor_1_local.eval()
+        self.actor_2_local.eval()
+        with torch.no_grad():
+            action_1 = self.actor_1_local(torch.from_numpy(state[0, :]).float().to(device)).cpu().numpy()
+            action_2 = self.actor_2_local(torch.from_numpy(state[1, :]).float().to(device)).cpu().numpy()
+        actions = np.vstack([action_1, action_2])  # the environment expects the actions stacked
+        assert actions.shape == (self.actor_count, self.action_size)
+        if add_noise:
+            actions += self.noise.sample()
+        return actions
+
+    def save(self) -> None:
+        torch.save(self.actor_1_local.state_dict(), self.actor_1_local_filename)
+        torch.save(self.actor_1_target.state_dict(), self.actor_1_target_filename)
+        torch.save(self.actor_2_local.state_dict(), self.actor_2_local_filename)
+        torch.save(self.actor_2_target.state_dict(), self.actor_2_target_filename)
+        torch.save(self.critic_local.state_dict(), self.critic_local_filename)
+        torch.save(self.critic_target.state_dict(), self.critic_target_filename)
+
+    def load(self) -> None:
+        self.actor_1_local.load_state_dict(torch.load(self.actor_1_local_filename))
+        self.actor_1_target.load_state_dict(torch.load(self.actor_1_target_filename))
+        self.actor_2_local.load_state_dict(torch.load(self.actor_2_local_filename))
+        self.actor_2_target.load_state_dict(torch.load(self.actor_2_target_filename))
+        self.critic_local.load_state_dict(torch.load(self.critic_local_filename))
+        self.critic_target.load_state_dict(torch.load(self.critic_target_filename))
+
+    def files_exist(self) -> bool:
+        pass
+
+    # noinspection PyUnresolvedReferences
+    def _learn(self):
+        gamma = GAMMA
+        self.actor_1_local.train()  # the critic model is never switched out of train mode
+        self.actor_2_local.train()
+
+        states, actions, rewards, next_states, dones = self.experiences.sample()
+
+        assert states.shape == torch.Size([BATCH_SIZE, self.actor_count * self.state_size])
+        assert actions.shape == torch.Size([BATCH_SIZE, self.actor_count * self.action_size])
+        assert rewards.shape == torch.Size([BATCH_SIZE, self.actor_count])
+        assert next_states.shape == torch.Size([BATCH_SIZE, self.actor_count * self.state_size])
+        assert dones.shape == torch.Size([BATCH_SIZE, self.actor_count])
+
+        # ---------------------------- update critic ---------------------------- #
+        # Get predicted next-state actions and Q values from target models
+        action_1 = self.actor_1_local(next_states[:, :self.state_size])
+        action_2 = self.actor_2_local(next_states[:, self.state_size:])
+        actions_next = torch.cat([action_1, action_2], 1)
+        assert actions_next.shape == (BATCH_SIZE, self.actor_count * self.action_size)
+
+        q_targets_next = self.critic_target(next_states, actions_next)
+        # Compute Q targets for current states (y_i)
+        q_targets = rewards + (gamma * q_targets_next * (1 - dones))
+        # Compute critic loss
+        q_expected = self.critic_local(states, actions)
+        critic_loss = F.mse_loss(q_expected, q_targets)
+        # Minimize the loss
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic_optimizer.step()
+
+        # ---------------------------- update actor ---------------------------- #
+        # Compute actor loss
+        actions_1_pred = self.actor_1_local(states[:, :self.state_size])
+        assert actions_1_pred.shape == (BATCH_SIZE, self.action_size)
+        assert torch.cat([actions[:,:2], actions_1_pred], 1).shape == (BATCH_SIZE, self.action_size * 2)
+        actor_1_loss = -self.critic_local(states, torch.cat([actions[:,:2], actions_1_pred], 1)).mean()
+        # Minimize the loss
+        self.actor_1_optimizer.zero_grad()
+        actor_1_loss.backward()
+        self.actor_1_optimizer.step()
+
+        # Compute actor loss
+        actions_2_pred = self.actor_2_local(states[:, self.state_size:])
+        actor_2_loss = -self.critic_local(states, torch.cat([actions[:,2:], actions_2_pred], 1)).mean()
+        # Minimize the loss
+        self.actor_2_optimizer.zero_grad()
+        actor_2_loss.backward()
+        self.actor_2_optimizer.step()
+
+        # ----------------------- update target networks ----------------------- #
+        Agent._soft_update(self.critic_local, self.critic_target, TAU)
+        Agent._soft_update(self.actor_1_local, self.actor_1_target, TAU)
+        Agent._soft_update(self.actor_2_local, self.actor_2_target, TAU)

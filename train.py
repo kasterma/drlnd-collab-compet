@@ -11,7 +11,7 @@ import os.path
 from collabcompet import *
 import numpy as np
 
-from collabcompet.agents import IndependentAgent
+from collabcompet.agents import IndependentAgent, SharedCritic
 
 with open("logging.yaml") as log_conf_file:
     log_conf = yaml.load(log_conf_file)
@@ -47,9 +47,12 @@ def random_test_run():
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--run_id', help='Run id for this run.', type=int)
 @click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
-def train_run(number_episodes: int, print_every: int, run_id: int, continue_run: bool, scores_window: int=100):
+@click.option('--sharedcritic/--no-sharedcritic', default=True)
+def train_run(number_episodes: int, print_every: int, run_id: int, continue_run: bool, sharedcritic: bool,
+              scores_window: int = 100):
     """Perform a training run
 
+    :param sharedcritic:
     :param continue_run:
     :param scores_window:
     :param number_episodes the number of episodes to run through
@@ -58,7 +61,11 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     """
     log.info("Run with id %s", run_id)
     env = Tennis()
-    agent: AgentInterface = IndependentAgent(run_id=run_id)
+    if sharedcritic:
+        agent: AgentInterface = SharedCritic(replay_memory_size=100000, state_size=24, action_size=2, actor_count=2,
+                                             run_id=f"agent-A-{run_id}")
+    else:
+        agent: AgentInterface = IndependentAgent(run_id=run_id)
     if continue_run:
         log.info("Continuing run")
         agent.load()
@@ -75,6 +82,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
             score = np.zeros(2)
             while True:
                 action = agent.get_action(state)
+                assert action.shape == (2,2)
                 step_result = env.step(action)
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
@@ -104,6 +112,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
         idx_p = f"-{idx}" if idx != 0 else ""
         ext = ".npy"
         return base + idx_p + ext
+
     scores_addition = 0
     while os.path.isfile(scores_filename(scores_addition)):
         scores_addition += 1
