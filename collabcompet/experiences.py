@@ -1,6 +1,6 @@
 import random
 from collections import deque
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -12,24 +12,39 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class Experience:
     """Wrapper class for an experience as received from the environment"""
 
-    def __init__(self, state: np.ndarray, action: np.ndarray, reward: float, next_state: np.ndarray, done: bool,
+    def __init__(self, state: np.ndarray, action: np.ndarray, reward: Union[float, np.ndarray], next_state: np.ndarray,
+                 done: bool,
                  joint=False):
-        if joint:
+        self.joint = joint
+
+        if self.joint:
             assert state.shape == (2, 24)
+            self.state = state.flatten()
         else:
             assert state.shape == (24,)
-        self.state = state
-        if joint:
+            self.state = state
+
+        if self.joint:
             assert action.shape == (2, 2)
+            self.action = action.flatten()
         else:
             assert action.shape == (2,)
-        self.action = action
-        self.reward = reward
-        if joint:
+            self.action = action
+
+        if self.joint:
+            assert type(reward) == list
+            assert len(reward) == 2
+            self.reward = reward
+        else:
+            self.reward = reward
+
+        if self.joint:
             assert next_state.shape == (2, 24)
+            self.next_state = next_state.flatten()
         else:
             assert next_state.shape == (24,)
-        self.next_state = next_state
+            self.next_state = next_state
+
         self.done = done
 
     def __repr__(self):
