@@ -9,9 +9,14 @@ from typing import Tuple
 
 import numpy as np
 import torch
+import yaml
 import torch.nn as nn
 # noinspection PyPep8Naming
 import torch.nn.functional as F
+
+
+with open("config.yaml") as conf_file:
+    conf = yaml.load(conf_file)
 
 
 def hidden_init(layer) -> Tuple[float, float]:
@@ -24,7 +29,7 @@ def hidden_init(layer) -> Tuple[float, float]:
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, fc1_units=75, fc2_units=50):
+    def __init__(self, state_size, action_size, fc1_units=conf['actor_fc1_units'], fc2_units=conf['actor_fc2_units']):
         """Initialize parameters and build model.
         Params
         ======
@@ -62,11 +67,15 @@ class Actor(nn.Module):
             copy_param.data.copy_(self_param.data)
         return copy
 
+    def __repr__(self):
+        return f'Actor(st: {self.state_size}, ac:{self.action_size}, fc1: {self.fc1_units}, fc2: {self.fc2_units})'
+
 
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, agent_count=1, fcs1_units=75, fc2_units=50):
+    def __init__(self, state_size, action_size, agent_count=1,
+                 fcs1_units=conf['critic_fc1_units'], fc2_units=conf['critic_fc2_units']):
         """
         :param state_size: size of the per agent state
         :param action_size: size of the per agent actions
@@ -104,3 +113,7 @@ class Critic(nn.Module):
         for copy_param, self_param in zip(copy.parameters(), self.parameters()):
             copy_param.data.copy_(self_param.data)
         return copy
+
+    def __repr__(self):
+        return (f"Critic(st: {self.state_size}, ac: {self.action_size}, agct: {self.agent_count}, "
+                f"fc1: {self.fc1_units}, fc2: {self.fc2_units})")

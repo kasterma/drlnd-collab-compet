@@ -302,17 +302,23 @@ class SharedCritic(AgentInterface):
         self.actor_1_local = Actor(state_size, action_size).to(device)
         self.actor_1_target = self.actor_1_local.get_copy()
         self.actor_1_optimizer = optim.Adam(self.actor_1_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
+        log.info("Actor1 local: %s", repr(self.actor_1_local))
+        log.info("Actor1 target: %s", repr(self.actor_1_target))
 
         # Second actor network
         self.actor_2_local = Actor(state_size, action_size).to(device)
         self.actor_2_target = self.actor_2_local.get_copy()
         self.actor_2_optimizer = optim.Adam(self.actor_2_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
-
+        log.info("Actor2 local: %s", repr(self.actor_2_local))
+        log.info("Actor2 target: %s", repr(self.actor_2_target))
+        
         # Critic Network
         # note gets the actions and observations from both actors and hence has sizes twice as large
         self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count).to(device)
         self.critic_target = self.critic_local.get_copy()
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        log.info("Critic local: %s", repr(self.critic_local))
+        log.info("Critic target: %s", repr(self.critic_target))
 
         # Noise process
         self.noise = OUNoise((self.actor_count, self.action_size))
