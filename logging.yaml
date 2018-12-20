@@ -8,6 +8,11 @@ handlers:
     level: DEBUG
     formatter: simple
     stream: ext://sys.stdout
+  file:
+    class : logging.FileHandler
+    formatter: simple
+    level: DEBUG
+    filename: data/runlog.log
 loggers:
   interact:
     level: DEBUG
@@ -17,4 +22,4 @@ loggers:
     level: INFO
 root:
   level: DEBUG
-  handlers: [console]
+  handlers: [console, file]
