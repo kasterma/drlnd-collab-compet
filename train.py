@@ -75,6 +75,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     state = env.reset(train_mode=True)
     scores = []
     scores_deque = deque(maxlen=scores_window)
+    max_mean_achieved = -1
     try:
         for episode_idx in range(number_episodes):
             env.reset(train_mode=True)
@@ -98,9 +99,10 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
             scores.append(episode_score)
             scores_deque.append(episode_score)
             mean_achieved_score = np.mean(scores_deque)
+            max_mean_achieved = max(mean_achieved_score, max_mean_achieved)
             if episode_idx % print_every == 0:
-                log.info("Mean achieved score %f  ---  %d/%d (%f)",
-                         mean_achieved_score, episode_idx, number_episodes, episode_score)
+                log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
+                         mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
             if mean_achieved_score > 0.5:
                 log.info("train success")
                 break
