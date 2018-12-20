@@ -1,6 +1,6 @@
-# Training driver for the DRLND continuous project
+# Training driver for the DRLND collaboration competition project
 #
-# This code is the primary interface to start and evaluate the training for the continous project.
+# This code is the primary interface to start and evaluate the training for this project.
 import logging.config
 from collections import deque
 
@@ -43,7 +43,7 @@ def random_test_run():
 
 
 @click.command(name="train")
-@click.option('--number_episodes', default=4000, help='Number of episodes to train for.')
+@click.option('--number_episodes', default=10000, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--run_id', help='Run id for this run.', type=int)
 @click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
@@ -94,11 +94,14 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
                     break
                 state = step_result.next_state
             assert score.shape == (2,)
-            scores.append(np.max(score))
-            scores_deque.append(np.max(score))
+            episode_score = np.max(score)
+            scores.append(episode_score)
+            scores_deque.append(episode_score)
+            mean_achieved_score = np.mean(scores_deque)
             if episode_idx % print_every == 0:
-                log.info("%d Mean score over last %d episodes %f", episode_idx, scores_window, np.mean(scores_deque))
-            if np.mean(scores_deque) > 0.5:
+                log.info("Mean achieved score %f  ---  %d/%d (%f)",
+                         mean_achieved_score, episode_idx, number_episodes, episode_score)
+            if mean_achieved_score > 0.5:
                 log.info("train success")
                 break
     except KeyboardInterrupt:
