@@ -1,7 +1,7 @@
 buffer_size: 100000
 batch_size: 128
 gamma: 0.99
-tau: 1e-3
+tau: 1e-2
 learning_rate_actor: 1e-4
 learning_rate_critic: 1e-4
 weight_decay: 0
@@ -12,3 +12,7 @@ actor_fc1_units: 400
 actor_fc2_units: 300
 critic_fc1_units: 400
 critic_fc2_units: 300
+
+noise_mu: 0.0
+noise_theta: 0.15
+noise_sigma: 0.2
