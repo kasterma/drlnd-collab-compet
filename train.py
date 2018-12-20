@@ -122,7 +122,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     while os.path.isfile(scores_filename(scores_addition)):
         scores_addition += 1
     log.info("Saving scores to file %s", scores_filename(scores_addition))
-    np.save(scores_filename(scores_addition), np.array(scores_deque))
+    np.save(scores_filename(scores_addition), np.array(scores))
 
 
 @click.command()
