@@ -376,7 +376,21 @@ class MADDPG(AgentInterface):
         self.critic_target.load_state_dict(torch.load(self.critic_target_filename))
 
     def files_exist(self) -> bool:
-        pass
+        """Check if the model files already exist.
+
+        Note: also checks that if any exist all exists.
+        """
+        f1 = os.path.isfile(self.actor_1_local_filename)
+        f2 = os.path.isfile(self.actor_1_target_filename)
+        f3 = os.path.isfile(self.actor_2_local_filename)
+        f4 = os.path.isfile(self.actor_2_target_filename)
+        f5 = os.path.isfile(self.critic_local_filename)
+        f6 = os.path.isfile(self.critic_target_filename)
+        all_files = np.all([f1, f2, f3, f4, f5, f6])
+        any_files = np.any([f1, f2, f3, f4, f5, f6])
+        if any_files:
+            assert all_files
+        return all_files
 
     # noinspection PyUnresolvedReferences
     def _learn(self):
