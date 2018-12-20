@@ -270,7 +270,9 @@ class IndependentAgent(AgentInterface):
         return self.agent_A.files_exist() or self.agent_B.files_exist()
 
 
-class SharedCritic(AgentInterface):
+class MADDPG(AgentInterface):
+    """Multi agent deep deterministic policy gradient.
+    """
 
     def __init__(self, replay_memory_size, actor_count, state_size, action_size, run_id, numpy_seed=36, random_seed=21,
                  torch_seed=42):
