@@ -5,7 +5,7 @@
 Learning parameters (these are configured in the `config.yaml` file)
 
 | parameter            |  value   |
-+----------------------+----------+
+|----------------------|----------|
 | buffer_size          |  100000  |
 | batch_size           |  128     |
 | gamma                |  0.99    |
