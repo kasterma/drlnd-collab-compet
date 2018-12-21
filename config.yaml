@@ -8,10 +8,10 @@ weight_decay: 0
 update_every: 1
 data_dir: "data/"
 
-actor_fc1_units: 400
-actor_fc2_units: 300
-critic_fc1_units: 400
-critic_fc2_units: 300
+actor_fc1_units: 250
+actor_fc2_units: 150
+critic_fc1_units: 250
+critic_fc2_units: 150
 
 noise_mu: 0.0
 noise_theta: 0.15
