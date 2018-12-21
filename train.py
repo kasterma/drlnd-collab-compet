@@ -132,11 +132,10 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
 def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_window=100):
     log.info("Evaluate run with id %s", run_id)
     env = Tennis()
-    agent_a = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-A-{run_id}")
-    agent_b = Agent(replay_memory_size=100000, state_size=24, action_size=2, actor_count=1, run_id=f"agent-B-{run_id}")
-    assert agent_a.files_exist() and agent_b.files_exist()
-    agent_a.load()
-    agent_b.load()
+    agent: AgentInterface = MADDPG(replay_memory_size=100000, state_size=24, action_size=2, actor_count=2,
+                                   run_id=f"agent-A-{run_id}")
+    assert agent.files_exist()
+    agent.load()
     state = env.reset(train_mode=False)
     scores = []
     scores_deque_max = deque(maxlen=scores_window)
@@ -147,9 +146,8 @@ def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_wind
         ct = 0
         while True:
             ct += 1
-            action_a = agent_a.get_action(state[0, :])
-            action_b = agent_b.get_action(state[1, :])
-            step_result = env.step(np.vstack([action_a, action_b]))
+            action = agent.get_action(state)
+            step_result = env.step(action)
             score += step_result.rewards
             if np.any(step_result.done):
                 break
