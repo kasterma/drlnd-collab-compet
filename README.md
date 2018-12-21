@@ -10,7 +10,7 @@ this will install the virtual env, and download e.g. the unity environment.
 
 Then we can run the training by running
 
-    python train.py train --run_id=<ID>
+    python train.py train --run_id=<ID> --maddpg
     
 where <ID> is a numeric run identifier.  To then run the trained models without noise in the environment run
 
@@ -36,3 +36,12 @@ consecutive episodes, after taking the maximum over both agents). Specifically,
 - This yields a single score for each episode.
 
 The environment is considered solved, when the average (over 100 episodes) of those scores is at least +0.5.
+
+# Training results
+
+The saved weights and scores of the successful training run are in the `data` directory.
+
+# Code
+
+All the code other than the driver `train.py` and ad hoc plot code `evaluate.py` is in the collabcompet directory.  The
+logging configuration is in `logging.yaml` and the training and network configuration is in `config.yaml`.
