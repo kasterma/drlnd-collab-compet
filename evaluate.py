@@ -17,8 +17,8 @@ ma = moving_average(dat)
 plt.plot(np.concatenate([np.zeros(100), ma]), label="moving_average")
 # plt.show()
 plt.savefig("train-scores.png")
-# dat = np.load("evaluate-scores-15.npy")
-# plt.plot(dat, label="eval")
-# plt.legend()
+
+dat = np.load("data/evaluation-scores-28.npy")
+plt.scatter(np.arange(len(dat)), dat, label="eval")
 # plt.show()    # use this during development to show (not save) the graph
-# plt.savefig("both-scores.png")
+plt.savefig("evaluation-scores.png")

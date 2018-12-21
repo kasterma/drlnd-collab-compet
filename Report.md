@@ -51,6 +51,14 @@ For the successful training run it took 3193 episodes to get the moving average 
 
 ![training scores](images/train-scores.png)
 
+On an evaluation run (without noise) of the trained models we noticed the two agents did not
+learn equally well.  Of a 100 runs the left agent scores 22, the other 78.  The average
+episode score during this evaluation run was 0.65, so the gain from dropping the noise on
+these models was about 0.15.  The following graph shows the episode scores during the
+evaluation
+
+![evaluation scores](images/evaluation-scores.png)
+
 ## Future Plans
 
 This training and took a while (around an hour for the successful run, and longer for several
