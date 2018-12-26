@@ -130,6 +130,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--run_id', help='Run id for this run.', type=int)
 def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_window=100):
+    start_run(note=f"Evaluation run with models from run {run_id}")
     log.info("Evaluate run with id %s", run_id)
     env = Tennis()
     agent: AgentInterface = MADDPG(replay_memory_size=100000, state_size=24, action_size=2, actor_count=2,
@@ -153,6 +154,7 @@ def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_wind
                 break
             state = step_result.next_state
         scores.append(np.max(score))
+        save_score(episode_idx, np.max(score))
         scores_deque_max.append(np.max(score))
         scores_deque_mean.append(np.mean(score))
         if episode_idx % print_every == 0:
