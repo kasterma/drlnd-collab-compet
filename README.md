@@ -1,6 +1,8 @@
 # Project: Collaboration and Competition
 
-Third project of the udacity nano-degree on reinforcement learning.
+Third project of the udacity nano-degree on reinforcement learning.  Note the version of the project with which I
+passed the project is under tag `drlnd-passed`.  Since then I have moved away from the requirements and changed some
+of the setup.
 
 To setup run
 
