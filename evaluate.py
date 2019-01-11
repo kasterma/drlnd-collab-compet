@@ -1,7 +1,22 @@
 # code to draw the episode score graph for in the report
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from collabcompet.orm import EpisodeScore
+
+engine = create_engine("sqlite:///data/rundb.sqlite", echo=True)
+Session = sessionmaker(bind=engine)
+session = Session()
+scores = session.query(EpisodeScore).filter(EpisodeScore.run_id == 2)
+score_dicts = [{'episode': s.episode_idx, 'score': s.score} for s in scores]
+df = pd.DataFrame(score_dicts)
+df_scores = df.reindex(df.episode)['score']
+plt.scatter(df_scores.index, df_scores)
+plt.show()
 
 
 def moving_average(a, n=100) :
