@@ -23,6 +23,7 @@ class Run(Base):
 
     id = Column(Integer, primary_key=True)  # has autoincrement semantics by default
     note = Column(String)
+    config = Column(String)
 
     def __repr__(self):
         return f"Run(id={self.id}, note={self.note})"
@@ -42,14 +43,26 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
 run = None
+config = None
 
 
 def start_run(run_id=None, note=None):
-    global run
-    run = Run(id=run_id, note=note)
+    global run, config
+    with open("config.yaml") as conf_file:
+        conf_str = conf_file.read()
+        config = yaml.load(conf_str)
+    run = Run(id=run_id, note=note, config=conf_str)
     session.add(run)
     session.commit()
     log.info("Starting run %s", run)
+
+
+def current_runid():
+    """Given that the run was started with start_run with no explicit given run_id this will allow you to retrieve the
+    assigned run_id.
+    """
+    global run
+    return run.id
 
 
 def save_score(episode_idx, score):
