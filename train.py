@@ -45,11 +45,9 @@ def random_test_run():
 @click.command(name="train")
 @click.option('--number_episodes', default=10000, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
-@click.option('--run_id', help='Run id for this run.', type=int)
 @click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
 @click.option('--maddpg/--no-maddpg', default=True)
-def train_run(number_episodes: int, print_every: int, run_id: int, continue_run: bool, maddpg: bool,
-              scores_window: int = 100):
+def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg: bool, scores_window: int = 100):
     """Perform a training run
 
     :param maddpg: flag for use of maddpg agent versus independent agents
@@ -57,8 +55,9 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
     :param scores_window: length of window to average over to check if goal has been reached
     :param number_episodes the number of episodes to run through
     :param print_every give an update on progress after this many episodes
-    :param run_id id to use in saving models
     """
+    start_run(note=f"Evaluation run with models from run {run_id}")
+    run_id = current_runid()
     log.info("Run with id %s", run_id)
     env = Tennis()
     if maddpg:
@@ -96,6 +95,7 @@ def train_run(number_episodes: int, print_every: int, run_id: int, continue_run:
                 state = step_result.next_state
             assert score.shape == (2,)
             episode_score = np.max(score)
+            save_score(episode_idx, episode_score)
             scores.append(episode_score)
             scores_deque.append(episode_score)
             mean_achieved_score = np.mean(scores_deque)
