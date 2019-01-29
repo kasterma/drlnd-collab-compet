@@ -8,6 +8,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import yaml
 import logging.config
+from alembic.config import Config
+from alembic import command
 
 with open("logging.yaml") as log_conf_file:
     log_conf = yaml.load(log_conf_file)
@@ -40,6 +42,8 @@ class EpisodeScore(Base):
 
 engine = create_engine("sqlite:///data/rundb.sqlite", echo=True)
 Base.metadata.create_all(engine)
+alembic_cfg = Config("alembic.ini")
+command.stamp(alembic_cfg, "head")
 Session = sessionmaker(bind=engine)
 session = Session()
 run = None
