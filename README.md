@@ -47,3 +47,10 @@ The saved weights and scores of the successful training run are in the `data` di
 
 All the code other than the driver `train.py` and ad hoc plot code `evaluate.py` is in the collabcompet directory.  The
 logging configuration is in `logging.yaml` and the training and network configuration is in `config.yaml`.
+
+# Notes
+
+1. importing config into alembic env makes other class misbehave
+2. logging level sqlalchemy not read; qualname in logging.yaml not working
+3. git diff stash@{0}
+4. expand use of config.py to all modules
