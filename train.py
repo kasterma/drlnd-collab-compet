@@ -56,7 +56,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg
     :param number_episodes the number of episodes to run through
     :param print_every give an update on progress after this many episodes
     """
-    start_run(note=f"Evaluation run with models from run {run_id}")
+    start_run(note="Training run")
     run_id = current_runid()
     log.info("Run with id %s", run_id)
     env = Tennis()

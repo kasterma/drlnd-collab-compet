@@ -7,13 +7,12 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import yaml
-import logging.config
+import logging
+import os
+from collabcompet.config import config
 from alembic.config import Config
 from alembic import command
 
-with open("logging.yaml") as log_conf_file:
-    log_conf = yaml.load(log_conf_file)
-logging.config.dictConfig(log_conf)
 log = logging.getLogger("orm")
 
 
@@ -40,10 +39,19 @@ class EpisodeScore(Base):
     score = Column(Float)
 
 
-engine = create_engine("sqlite:///data/rundb.sqlite", echo=True)
-Base.metadata.create_all(engine)
-alembic_cfg = Config("alembic.ini")
-command.stamp(alembic_cfg, "head")
+def create_database():
+    log.info("Creating database")
+    Base.metadata.create_all(engine)
+    alembic_cfg = Config("alembic.ini")
+    command.stamp(alembic_cfg, "head")
+
+
+dbinit = not os.path.isfile(config['database_file'])
+
+engine = create_engine(f"sqlite:///{config['database_file']}")
+if dbinit:
+    create_database()
+
 Session = sessionmaker(bind=engine)
 session = Session()
 run = None

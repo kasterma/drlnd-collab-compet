@@ -22,6 +22,12 @@ loggers:
     level: INFO
   orm:
     level: INFO
+  sqlalchemy.engine:
+    level: WARN
+    propagate: False
+  alembic:
+    level: INFO
+    propagate: False
 root:
   level: DEBUG
   handlers: [console, file]
