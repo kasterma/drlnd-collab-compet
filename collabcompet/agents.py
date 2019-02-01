@@ -21,25 +21,20 @@ from abc import ABC, abstractmethod
 from collabcompet.experiences import Experience, Experiences
 from collabcompet.model import Actor, Critic
 from collabcompet.noise import OUNoise
-import collabcompet.config as config
+from collabcompet.config import device, config
 
 log = logging.getLogger("agent")
 
-with open("config.yaml") as conf_file:
-    conf = yaml.load(conf_file)
+BUFFER_SIZE = config['buffer_size']
+BATCH_SIZE = config['batch_size']
+GAMMA = float(config['gamma'])
+TAU = float(config['tau'])
+LR_ACTOR = float(config['learning_rate_actor'])
+LR_CRITIC = float(config['learning_rate_critic'])
+WEIGHT_DECAY = config['weight_decay']
+UPDATE_EVERY = config['update_every']
 
-BUFFER_SIZE = conf['buffer_size']
-BATCH_SIZE = conf['batch_size']
-GAMMA = float(conf['gamma'])
-TAU = float(conf['tau'])
-LR_ACTOR = float(conf['learning_rate_actor'])
-LR_CRITIC = float(conf['learning_rate_critic'])
-WEIGHT_DECAY = conf['weight_decay']
-UPDATE_EVERY = conf['update_every']
-
-DATA_DIR = conf['data_dir']
-
-log.info("Configuration %s", yaml.dump(conf))
+DATA_DIR = config['data_dir']
 
 
 class AgentInterface(ABC):
@@ -98,12 +93,12 @@ class Agent(AgentInterface):
         self.action_size = action_size
 
         # Actor Network (w/ Target Network)
-        self.actor_local = Actor(state_size, action_size).to(config.device)
+        self.actor_local = Actor(state_size, action_size).to(device)
         self.actor_target = self.actor_local.get_copy()
         self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
 
         # Critic Network (w/ Target Network)
-        self.critic_local = Critic(state_size, action_size).to(config.device)
+        self.critic_local = Critic(state_size, action_size).to(device)
         self.critic_target = self.critic_local.get_copy()
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
@@ -136,7 +131,7 @@ class Agent(AgentInterface):
         self.actor_local.eval()
         with torch.no_grad():
             # noinspection PyUnresolvedReferences
-            action = self.actor_local(torch.from_numpy(state).float().to(config.device)).cpu().numpy()
+            action = self.actor_local(torch.from_numpy(state).float().to(device)).cpu().numpy()
         if add_noise:
             n = self.noise.sample()
             assert n.shape == (2,)
@@ -296,14 +291,14 @@ class MADDPG(AgentInterface):
         self.action_size = action_size
 
         # First actor Network
-        self.actor_1_local = Actor(state_size, action_size).to(config.device)
+        self.actor_1_local = Actor(state_size, action_size).to(device)
         self.actor_1_target = self.actor_1_local.get_copy()
         self.actor_1_optimizer = optim.Adam(self.actor_1_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
         log.info("Actor1 local: %s", repr(self.actor_1_local))
         log.info("Actor1 target: %s", repr(self.actor_1_target))
 
         # Second actor network
-        self.actor_2_local = Actor(state_size, action_size).to(config.device)
+        self.actor_2_local = Actor(state_size, action_size).to(device)
         self.actor_2_target = self.actor_2_local.get_copy()
         self.actor_2_optimizer = optim.Adam(self.actor_2_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
         log.info("Actor2 local: %s", repr(self.actor_2_local))
@@ -311,7 +306,7 @@ class MADDPG(AgentInterface):
         
         # Critic Network
         # note gets the actions and observations from both actors and hence has sizes twice as large
-        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count).to(config.device)
+        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count).to(device)
         self.critic_target = self.critic_local.get_copy()
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
         log.info("Critic local: %s", repr(self.critic_local))
@@ -346,8 +341,8 @@ class MADDPG(AgentInterface):
         self.actor_1_local.eval()
         self.actor_2_local.eval()
         with torch.no_grad():
-            action_1 = self.actor_1_local(torch.from_numpy(state[0, :]).float().to(config.device)).cpu().numpy()
-            action_2 = self.actor_2_local(torch.from_numpy(state[1, :]).float().to(config.device)).cpu().numpy()
+            action_1 = self.actor_1_local(torch.from_numpy(state[0, :]).float().to(device)).cpu().numpy()
+            action_2 = self.actor_2_local(torch.from_numpy(state[1, :]).float().to(device)).cpu().numpy()
         actions = np.vstack([action_1, action_2])  # the environment expects the actions stacked
         assert actions.shape == (self.actor_count, self.action_size)
         if add_noise:

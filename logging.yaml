@@ -14,6 +14,8 @@ handlers:
     level: DEBUG
     filename: data/runlog.log
 loggers:
+  config:
+    level: DEBUG
   interact:
     level: DEBUG
   environment:

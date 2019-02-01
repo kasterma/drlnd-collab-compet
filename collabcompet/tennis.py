@@ -10,9 +10,6 @@ import numpy as np
 import yaml
 from unityagents import UnityEnvironment
 
-with open("logging.yaml") as log_conf_file:
-    log_conf = yaml.load(log_conf_file)
-logging.config.dictConfig(log_conf)
 log = logging.getLogger("environment")
 
 

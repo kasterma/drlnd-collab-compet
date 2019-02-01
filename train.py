@@ -1,24 +1,20 @@
 # Training driver for the DRLND collaboration competition project
 #
 # This code is the primary interface to start and evaluate the training for this project.
-import logging.config
+import logging
+import os.path
 from collections import deque
 
-import yaml
 import click
-import os.path
-
-from collabcompet import *
 import numpy as np
 
+from collabcompet import *
 from collabcompet.agents import IndependentAgent, MADDPG
+from collabcompet.config import config
 
-with open("logging.yaml") as log_conf_file:
-    log_conf = yaml.load(log_conf_file)
-logging.config.dictConfig(log_conf)
 log = logging.getLogger("agent")
 
-DATA_DIR = "data/"
+DATA_DIR = config['data_dir']
 
 
 @click.group()

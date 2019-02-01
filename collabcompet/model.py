@@ -13,10 +13,7 @@ import yaml
 import torch.nn as nn
 # noinspection PyPep8Naming
 import torch.nn.functional as F
-
-
-with open("config.yaml") as conf_file:
-    conf = yaml.load(conf_file)
+from collabcompet.config import config
 
 
 def hidden_init(layer) -> Tuple[float, float]:
@@ -29,7 +26,7 @@ def hidden_init(layer) -> Tuple[float, float]:
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, fc1_units=conf['actor_fc1_units'], fc2_units=conf['actor_fc2_units']):
+    def __init__(self, state_size, action_size, fc1_units=config['actor_fc1_units'], fc2_units=config['actor_fc2_units']):
         """Initialize parameters and build model.
         Params
         ======
@@ -75,7 +72,7 @@ class Critic(nn.Module):
     """Critic (Value) Model."""
 
     def __init__(self, state_size, action_size, agent_count=1,
-                 fcs1_units=conf['critic_fc1_units'], fc2_units=conf['critic_fc2_units']):
+                 fcs1_units=config['critic_fc1_units'], fc2_units=config['critic_fc2_units']):
         """
         :param state_size: size of the per agent state
         :param action_size: size of the per agent actions

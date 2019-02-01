@@ -4,9 +4,7 @@ from typing import Tuple, Union
 
 import numpy as np
 import torch
-
-# noinspection PyUnresolvedReferences
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+from collabcompet.config import device
 
 
 class Experience:

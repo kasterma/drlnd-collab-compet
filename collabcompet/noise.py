@@ -6,16 +6,13 @@
 import copy
 
 import numpy as np
-import yaml
-
-with open("config.yaml") as conf_file:
-    conf = yaml.load(conf_file)
+from collabcompet.config import config
 
 
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
 
-    def __init__(self, size, mu=conf['noise_mu'], theta=conf['noise_theta'], sigma=conf['noise_sigma']):
+    def __init__(self, size, mu=config['noise_mu'], theta=config['noise_theta'], sigma=config['noise_sigma']):
         """Initialize parameters and noise process."""
         self.size = size
         self.mu = mu * np.ones(size)

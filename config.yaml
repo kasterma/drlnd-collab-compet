@@ -16,3 +16,5 @@ critic_fc2_units: 150
 noise_mu: 0.0
 noise_theta: 0.15
 noise_sigma: 0.2
+
+database_file: "data/rundb.sqlite"
