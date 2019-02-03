@@ -8,6 +8,11 @@ weight_decay: 0
 update_every: 1
 data_dir: "data/"
 
+replay_memory_size: 100000
+state_size: 24
+action_size: 2
+actor_count: 2
+
 actor_fc1_units: 250
 actor_fc2_units: 150
 critic_fc1_units: 250

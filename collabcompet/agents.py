@@ -51,11 +51,13 @@ class AgentInterface(ABC):
         pass
 
     @abstractmethod
-    def save(self) -> None:
+    def save(self, label: str) -> None:
+        """Save with the label added to the filename"""
         pass
 
     @abstractmethod
-    def load(self) -> None:
+    def load(self, label: str) -> None:
+        """Load with the label added to the filename"""
         pass
 
     @abstractmethod
@@ -155,7 +157,7 @@ class Agent(AgentInterface):
             assert all_files
         return all_files
 
-    def save(self) -> None:
+    def save(self, eps_ind) -> None:
         torch.save(self.actor_local.state_dict(), "{dir}trained_model-actor_local-{id}.pth"
                    .format(dir=DATA_DIR, id=self.run_id))
         torch.save(self.actor_target.state_dict(), "{dir}trained_model-actor_target-{id}.pth"
@@ -291,23 +293,24 @@ class MADDPG(AgentInterface):
         self.action_size = action_size
 
         # First actor Network
-        self.actor_1_local = Actor(state_size, action_size).to(device)
-        self.actor_1_target = self.actor_1_local.get_copy()
+        self.actor_1_local = Actor(state_size, action_size, model_label=f"actor_1_local-run_{run_id}").to(device)
+        self.actor_1_target = self.actor_1_local.get_copy(model_label=f"actor_1_target-run_{run_id}")
         self.actor_1_optimizer = optim.Adam(self.actor_1_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
         log.info("Actor1 local: %s", repr(self.actor_1_local))
         log.info("Actor1 target: %s", repr(self.actor_1_target))
 
         # Second actor network
-        self.actor_2_local = Actor(state_size, action_size).to(device)
-        self.actor_2_target = self.actor_2_local.get_copy()
+        self.actor_2_local = Actor(state_size, action_size, model_label=f"actor_2_local-run_{run_id}").to(device)
+        self.actor_2_target = self.actor_2_local.get_copy(model_label=f"actor_2_target-run_{run_id}")
         self.actor_2_optimizer = optim.Adam(self.actor_2_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
         log.info("Actor2 local: %s", repr(self.actor_2_local))
         log.info("Actor2 target: %s", repr(self.actor_2_target))
         
         # Critic Network
         # note gets the actions and observations from both actors and hence has sizes twice as large
-        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count).to(device)
-        self.critic_target = self.critic_local.get_copy()
+        self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count,
+                                   model_label=f"critic_local-run_{run_id}").to(device)
+        self.critic_target = self.critic_local.get_copy(model_label=f"critic_target-run_{run_id}")
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
         log.info("Critic local: %s", repr(self.critic_local))
         log.info("Critic target: %s", repr(self.critic_target))
@@ -317,13 +320,6 @@ class MADDPG(AgentInterface):
 
         self.step_count = 0
         self.update_every = UPDATE_EVERY
-
-        self.actor_1_local_filename = "{dir}trained_model-actor_local_1-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
-        self.actor_1_target_filename = "{dir}trained_model-actor_target_1-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
-        self.actor_2_local_filename = "{dir}trained_model-actor_local_2-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
-        self.actor_2_target_filename = "{dir}trained_model-actor_target_2-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
-        self.critic_local_filename = "{dir}trained_model-critic_local-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
-        self.critic_target_filename = "{dir}trained_model-critic_target-{id}.pth".format(dir=DATA_DIR, id=self.run_id)
 
     def reset(self, idx=None):
         self.noise.reset()
@@ -349,33 +345,33 @@ class MADDPG(AgentInterface):
             actions += self.noise.sample()
         return actions
 
-    def save(self) -> None:
-        torch.save(self.actor_1_local.state_dict(), self.actor_1_local_filename)
-        torch.save(self.actor_1_target.state_dict(), self.actor_1_target_filename)
-        torch.save(self.actor_2_local.state_dict(), self.actor_2_local_filename)
-        torch.save(self.actor_2_target.state_dict(), self.actor_2_target_filename)
-        torch.save(self.critic_local.state_dict(), self.critic_local_filename)
-        torch.save(self.critic_target.state_dict(), self.critic_target_filename)
+    def save(self, label: str = "") -> None:
+        self.actor_1_local.save(label, config['data_dir'])
+        self.actor_1_target.save(label, config['data_dir'])
+        self.actor_2_local.save(label, config['data_dir'])
+        self.actor_2_target.save(label, config['data_dir'])
+        self.critic_local.save(label, config['data_dir'])
+        self.critic_target.save(label, config['data_dir'])
 
-    def load(self) -> None:
-        self.actor_1_local.load_state_dict(torch.load(self.actor_1_local_filename))
-        self.actor_1_target.load_state_dict(torch.load(self.actor_1_target_filename))
-        self.actor_2_local.load_state_dict(torch.load(self.actor_2_local_filename))
-        self.actor_2_target.load_state_dict(torch.load(self.actor_2_target_filename))
-        self.critic_local.load_state_dict(torch.load(self.critic_local_filename))
-        self.critic_target.load_state_dict(torch.load(self.critic_target_filename))
+    def load(self, label: str = "") -> None:
+        self.actor_1_local.load(label, config['data_dir'])
+        self.actor_1_target.load(label, config['data_dir'])
+        self.actor_2_local.load(label, config['data_dir'])
+        self.actor_2_target.load(label, config['data_dir'])
+        self.critic_local.load(label, config['data_dir'])
+        self.critic_target.load(label, config['data_dir'])
 
-    def files_exist(self) -> bool:
+    def files_exist(self, label: str = "") -> bool:
         """Check if the model files already exist.
 
         Note: also checks that if any exist all exists.
         """
-        f1 = os.path.isfile(self.actor_1_local_filename)
-        f2 = os.path.isfile(self.actor_1_target_filename)
-        f3 = os.path.isfile(self.actor_2_local_filename)
-        f4 = os.path.isfile(self.actor_2_target_filename)
-        f5 = os.path.isfile(self.critic_local_filename)
-        f6 = os.path.isfile(self.critic_target_filename)
+        f1 = self.actor_1_local.file_exists(label, config['data_dir'])
+        f2 = self.actor_1_target.file_exists(label, config['data_dir'])
+        f3 = self.actor_2_local.file_exists(label, config['data_dir'])
+        f4 = self.actor_2_target.file_exists(label, config['data_dir'])
+        f5 = self.critic_local.file_exists(label, config['data_dir'])
+        f6 = self.critic_target.file_exists(label, config['data_dir'])
         all_files = np.all([f1, f2, f3, f4, f5, f6])
         any_files = np.any([f1, f2, f3, f4, f5, f6])
         if any_files:

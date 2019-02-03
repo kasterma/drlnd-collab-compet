@@ -43,9 +43,12 @@ def random_test_run():
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
 @click.option('--maddpg/--no-maddpg', default=True)
-def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg: bool, scores_window: int = 100):
+@click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
+def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg: bool, save_models_every: int,
+              scores_window: int = 100):
     """Perform a training run
 
+    :param save_models_every: sve the models being trained every this many episodes
     :param maddpg: flag for use of maddpg agent versus independent agents
     :param continue_run: flag indicating this run should be a continuation of an earlier run
     :param scores_window: length of window to average over to check if goal has been reached
@@ -57,8 +60,10 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg
     log.info("Run with id %s", run_id)
     env = Tennis()
     if maddpg:
-        agent: AgentInterface = MADDPG(replay_memory_size=100000, state_size=24, action_size=2, actor_count=2,
-                                       run_id=f"agent-A-{run_id}")
+        agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
+                                       state_size=config['state_size'], action_size=config['action_size'],
+                                       actor_count=config['actor_count'],
+                                       run_id=run_id)
     else:
         agent: AgentInterface = IndependentAgent(run_id=run_id)
     if continue_run:
@@ -99,6 +104,8 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg
             if episode_idx % print_every == 0:
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
+            if episode_idx % save_models_every == 0:
+                agent.save(f"eps_{episode_idx}")
             if mean_achieved_score > 0.5:
                 log.info("train success")
                 break

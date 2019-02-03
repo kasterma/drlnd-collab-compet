@@ -9,7 +9,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-import yaml
+import os
 import torch.nn as nn
 # noinspection PyPep8Naming
 import torch.nn.functional as F
@@ -26,7 +26,8 @@ def hidden_init(layer) -> Tuple[float, float]:
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, fc1_units=config['actor_fc1_units'], fc2_units=config['actor_fc2_units']):
+    def __init__(self, state_size, action_size, fc1_units=config['actor_fc1_units'],
+                 fc2_units=config['actor_fc2_units'], model_label: str="actor"):
         """Initialize parameters and build model.
         Params
         ======
@@ -37,6 +38,7 @@ class Actor(nn.Module):
             fc2_units (int): Number of nodes in second hidden layer
         """
         super(Actor, self).__init__()
+        self.model_label = model_label
         self.state_size = state_size
         self.action_size = action_size
         self.fc1_units = fc1_units
@@ -58,11 +60,33 @@ class Actor(nn.Module):
         # noinspection PyUnresolvedReferences
         return torch.tanh(self.fc3(x))
 
-    def get_copy(self) -> 'Actor':
-        copy = Actor(self.state_size, self.action_size, self.fc1_units, self.fc2_units)
+    def get_copy(self, model_label: str) -> 'Actor':
+        copy = Actor(self.state_size, self.action_size, self.fc1_units, self.fc2_units, model_label=model_label)
         for copy_param, self_param in zip(copy.parameters(), self.parameters()):
             copy_param.data.copy_(self_param.data)
         return copy
+
+    def save(self, label: str, directory: str) -> None:
+        """Save the model.
+
+        Works together with load, when calling load with the same label as save the original state of the model will
+        be restored.
+        """
+        torch.save(self.state_dict(), self._filename(label, directory))
+
+    def load(self, label: str, directory: str) -> None:
+        """Load the model
+
+        Restore the state of the model from when save was called with the same label.
+        """
+        self.load_state_dict(torch.load(self._filename(label, directory)))
+
+    def file_exists(self, label: str, directory: str):
+        return os.path.isfile(self._filename(label, directory))
+
+    def _filename(self, label: str, directory: str) -> str:
+        sep = "-" if len(label) > 0 else ""
+        return os.path.join(directory, f"{self.model_label}{sep}{label}.pth")
 
     def __repr__(self):
         return f'Actor(st: {self.state_size}, ac:{self.action_size}, fc1: {self.fc1_units}, fc2: {self.fc2_units})'
@@ -72,7 +96,8 @@ class Critic(nn.Module):
     """Critic (Value) Model."""
 
     def __init__(self, state_size, action_size, agent_count=1,
-                 fcs1_units=config['critic_fc1_units'], fc2_units=config['critic_fc2_units']):
+                 fcs1_units=config['critic_fc1_units'], fc2_units=config['critic_fc2_units'],
+                 model_label: str="critic"):
         """
         :param state_size: size of the per agent state
         :param action_size: size of the per agent actions
@@ -81,6 +106,7 @@ class Critic(nn.Module):
         :param fc2_units:
         """
         super(Critic, self).__init__()
+        self.model_label = model_label
         self.agent_count = agent_count
         self.state_size = state_size
         self.action_size = action_size
@@ -105,11 +131,34 @@ class Critic(nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
-    def get_copy(self) -> 'Critic':
-        copy = Critic(self.state_size, self.action_size, self.agent_count, self.fc1_units, self.fc2_units)
+    def get_copy(self, model_label: str) -> 'Critic':
+        copy = Critic(self.state_size, self.action_size, self.agent_count, self.fc1_units, self.fc2_units,
+                      model_label=model_label)
         for copy_param, self_param in zip(copy.parameters(), self.parameters()):
             copy_param.data.copy_(self_param.data)
         return copy
+
+    def save(self, label: str, directory: str) -> None:
+        """Save the model.
+
+        Works together with load, when calling load with the same label as save the original state of the model will
+        be restored.
+        """
+        torch.save(self.state_dict(), self._filename(label, directory))
+
+    def load(self, label: str, directory: str) -> None:
+        """Load the model
+
+        Restore the state of the model from when save was called with the same label.
+        """
+        self.load_state_dict(torch.load(self._filename(label, directory)))
+
+    def file_exists(self, label: str, directory: str):
+        return os.path.isfile(self._filename(label, directory))
+
+    def _filename(self, label: str, directory: str) -> str:
+        sep = "-" if len(label) > 0 else ""
+        return os.path.join(directory, f"{self.model_label}{sep}{label}.pth")
 
     def __repr__(self):
         return (f"Critic(st: {self.state_size}, ac: {self.action_size}, agct: {self.agent_count}, "
