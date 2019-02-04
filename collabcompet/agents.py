@@ -347,6 +347,7 @@ class MADDPG(AgentInterface):
 
     def save(self, label: str = "") -> None:
         self.actor_1_local.save(label, config['data_dir'])
+        self.actor_1_local.save_to_db(label)
         self.actor_1_target.save(label, config['data_dir'])
         self.actor_2_local.save(label, config['data_dir'])
         self.actor_2_target.save(label, config['data_dir'])

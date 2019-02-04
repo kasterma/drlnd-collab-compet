@@ -3,7 +3,7 @@
 Set up the object relational mapping (and general other database setup and interaction).
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Float
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Float, PickleType
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import yaml
@@ -37,6 +37,17 @@ class EpisodeScore(Base):
     run_id = Column(Integer, ForeignKey("runs.id"))
     episode_idx = Column(Integer)
     score = Column(Float)
+
+
+class Model(Base):
+    __tablename__ = "model"
+
+    id = Column(Integer, primary_key=True)
+    model_label = Column(String)
+    run_id = Column(Integer, ForeignKey("runs.id"))
+    label = Column(String)
+    model_config = Column(PickleType)
+    model_dict = Column(PickleType)
 
 
 def create_database():
