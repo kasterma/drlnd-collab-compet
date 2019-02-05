@@ -118,19 +118,6 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     log.info("Saving models under id %s", run_id)
     agent.save()
 
-    def scores_filename(idx):
-        """Create scores filename"""
-        base = DATA_DIR + "scores-{}".format(run_id)
-        idx_p = f"-{idx}" if idx != 0 else ""
-        ext = ".npy"
-        return base + idx_p + ext
-
-    scores_addition = 0
-    while os.path.isfile(scores_filename(scores_addition)):
-        scores_addition += 1
-    log.info("Saving scores to file %s", scores_filename(scores_addition))
-    np.save(scores_filename(scores_addition), np.array(scores))
-
 
 @click.command()
 @click.option('--number_episodes', default=100, help='Number of episodes to train for.')
@@ -169,8 +156,6 @@ def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_wind
                      episode_idx, number_episodes, scores_window,
                      np.mean(scores_deque_max), np.mean(scores_deque_mean),
                      ct)
-
-    np.save(DATA_DIR + "evaluation-scores-{}.npy".format(run_id), np.array(scores_deque_max))
 
 
 tennis.add_command(random_test_run, name="randomrun")
