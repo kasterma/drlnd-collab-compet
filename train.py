@@ -41,16 +41,19 @@ def random_test_run():
 @click.command(name="train")
 @click.option('--number_episodes', default=10000, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
-@click.option('--continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
+@click.option('--continue_run/--no-continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
+@click.option('--continue_run_id', default=1, help="The id of the run to continue")
 @click.option('--maddpg/--no-maddpg', default=True)
 @click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
-def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg: bool, save_models_every: int,
+def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int,
+              maddpg: bool, save_models_every: int,
               scores_window: int = 100):
     """Perform a training run
 
     :param save_models_every: sve the models being trained every this many episodes
     :param maddpg: flag for use of maddpg agent versus independent agents
     :param continue_run: flag indicating this run should be a continuation of an earlier run
+    :param continue_run_id: the run id for the run we are continuing
     :param scores_window: length of window to average over to check if goal has been reached
     :param number_episodes the number of episodes to run through
     :param print_every give an update on progress after this many episodes
@@ -67,8 +70,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, maddpg
     else:
         agent: AgentInterface = IndependentAgent(run_id=run_id)
     if continue_run:
+        assert continue_run_id is not None
         log.info("Continuing run")
-        agent.load()
+        agent.load(continue_run_id)
     else:
         log.info("Starting new run")
         assert not agent.files_exist()

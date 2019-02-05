@@ -24,6 +24,8 @@ loggers:
     level: INFO
   orm:
     level: INFO
+  models:
+    level: DEBUG
   sqlalchemy.engine:
     level: WARN
     propagate: False

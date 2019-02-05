@@ -4,7 +4,7 @@
 # with the same seed on every model creation, hence if you create the same model twice you get identical generated
 # random initialized values.  However cleaner to me is to create a get_copy function which makes the reuse of values
 # explicit.
-
+import sys
 from typing import Tuple
 
 import numpy as np
@@ -16,6 +16,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collabcompet.config import config
 import collabcompet.orm as orm
+import logging
+
+log = logging.getLogger('models')
 
 
 def hidden_init(layer) -> Tuple[float, float]:
@@ -101,8 +104,6 @@ class Actor(nn.Module):
         @:param label identifying label for this model
 
         @:return the id of the model in the database"""
-        dd = pickle.dumps(self.state_dict())
-        #print(dd)
         model_tosave = orm.Model(model_label=self.config['model_label'], run_id=orm.run.id, label=label,
                                  model_config=self.config, model_dict=self.state_dict())
         orm.session.add(model_tosave)
@@ -112,12 +113,17 @@ class Actor(nn.Module):
     @staticmethod
     def read_from_db(run_id: int, model_label: str, label: str) -> 'Actor':
         model = orm.session.query(orm.Model) \
-            .filter(orm.Model.run_id == run_id) \
-            .filter(orm.Model.label == label) \
-            .filter(orm.Model.model_label == model_label).all()
-        assert len(model) == 1
+            .filter(orm.Model.run_id == run_id,
+                    orm.Model.label == label,
+                    orm.Model.model_label == model_label) \
+            .all()
+        if len(model) != 1:
+            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}, have {len(model)} models")
+            sys.exit(1)
         model = model[0]
-        print(model)
+        a = Actor(**model.model_config)
+        a.load_state_dict(model.model_dict)
+        return a
 
     def __repr__(self):
         return f'Actor({self.config})'
@@ -127,26 +133,26 @@ class Critic(nn.Module):
     """Critic (Value) Model."""
 
     def __init__(self, state_size, action_size, agent_count=1,
-                 fcs1_units=config['critic_fc1_units'], fc2_units=config['critic_fc2_units'],
+                 fc1_units=config['critic_fc1_units'], fc2_units=config['critic_fc2_units'],
                  model_label: str = "critic"):
         """
         :param state_size: size of the per agent state
         :param action_size: size of the per agent actions
         :param agent_count: number of agents to have critics for
-        :param fcs1_units:
+        :param fc1_units:
         :param fc2_units:
         """
         super(Critic, self).__init__()
-        self.model_label = model_label
-        self.agent_count = agent_count
-        self.state_size = state_size
-        self.action_size = action_size
-        self.fc1_units = fcs1_units
-        self.fc2_units = fc2_units
+        self.config = {'model_label': model_label,
+                       'agent_count': agent_count,
+                       'state_size': state_size,
+                       'action_size': action_size,
+                       'fc1_units': fc1_units,
+                       'fc2_units': fc2_units}
 
-        self.fcs1 = nn.Linear(state_size, fcs1_units)
-        self.fc2 = nn.Linear(fcs1_units + action_size, fc2_units)
-        self.fc3 = nn.Linear(fc2_units, self.agent_count)
+        self.fcs1 = nn.Linear(self.config['state_size'], self.config['fc1_units'])
+        self.fc2 = nn.Linear(self.config['fc1_units'] + self.config['action_size'], self.config['fc2_units'])
+        self.fc3 = nn.Linear(self.config['fc2_units'], self.config['agent_count'])
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -163,7 +169,8 @@ class Critic(nn.Module):
         return self.fc3(x)
 
     def get_copy(self, model_label: str) -> 'Critic':
-        copy = Critic(self.state_size, self.action_size, self.agent_count, self.fc1_units, self.fc2_units,
+        copy = Critic(self.config['state_size'], self.config['action_size'], self.config['agent_count'],
+                      self.config['fc1_units'], self.config['fc2_units'],
                       model_label=model_label)
         for copy_param, self_param in zip(copy.parameters(), self.parameters()):
             copy_param.data.copy_(self_param.data)
@@ -189,8 +196,41 @@ class Critic(nn.Module):
 
     def _filename(self, label: str, directory: str) -> str:
         sep = "-" if len(label) > 0 else ""
-        return os.path.join(directory, f"{self.model_label}{sep}{label}.pth")
+        return os.path.join(directory, f"{self.config['model_label']}{sep}{label}.pth")
+
+    def save_to_db(self, label: str) -> int:
+        """Save the model to the database.
+
+        Note: we _expect_ the model to be uniquely identified by run_id, label and model_label; but the id is guaranteed
+        to uniquely identify it.
+
+        @:param label identifying label for this model
+
+        @:return the id of the model in the database"""
+        model_tosave = orm.Model(model_label=self.config['model_label'], run_id=orm.run.id, label=label,
+                                 model_config=self.config, model_dict=self.state_dict())
+        orm.session.add(model_tosave)
+        orm.session.commit()
+        return model_tosave.id
+
+    @staticmethod
+    def read_from_db(run_id: int, model_label: str, label: str) -> 'Actor':
+        """Read the model back from the database.
+
+        Note: Checks that the identifying features are indeed uniquely identifying.
+        """
+        model = orm.session.query(orm.Model) \
+            .filter(orm.Model.run_id == run_id,
+                    orm.Model.label == label,
+                    orm.Model.model_label == model_label) \
+            .all()
+        if len(model) != 1:
+            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}, have {len(model)} models")
+            sys.exit(1)
+        model = model[0]
+        c = Critic(**model.model_config)
+        c.load_state_dict(model.model_dict)
+        return c
 
     def __repr__(self):
-        return (f"Critic(st: {self.state_size}, ac: {self.action_size}, agct: {self.agent_count}, "
-                f"fc1: {self.fc1_units}, fc2: {self.fc2_units})")
+        return f"Critic({self.config})"
