@@ -121,8 +121,8 @@ class Actor(nn.Module):
             a = Actor(**model.model_config)
             a.load_state_dict(model.model_dict)
             return a
-        except (NoResultFound, MultipleResultsFound):
-            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}, have {len(model)} models")
+        except (NoResultFound, MultipleResultsFound) as e:
+            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}: {e}")
             sys.exit(1)
 
     def __repr__(self):
@@ -226,8 +226,8 @@ class Critic(nn.Module):
             c = Critic(**model.model_config)
             c.load_state_dict(model.model_dict)
             return c
-        except (NoResultFound, MultipleResultsFound):
-            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}, have {len(model)} models")
+        except (NoResultFound, MultipleResultsFound) as e:
+            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}: {e}")
             sys.exit(1)
 
     def __repr__(self):

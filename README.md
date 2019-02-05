@@ -54,3 +54,11 @@ logging configuration is in `logging.yaml` and the training and network configur
 2. logging level sqlalchemy not read; qualname in logging.yaml not working
 3. git diff stash@{0}
 4. expand use of config.py to all modules
+
+
+1. simplify loading data
+2. combine code
+3. saving models intermediate
+
+4. on hover get info on what you are pointing to
+5. analysis tools
