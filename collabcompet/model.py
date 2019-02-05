@@ -20,6 +20,8 @@ from collabcompet.config import config
 import collabcompet.orm as orm
 import logging
 
+from abc import ABC
+
 log = logging.getLogger('models')
 
 
@@ -30,7 +32,36 @@ def hidden_init(layer) -> Tuple[float, float]:
     return -lim, lim
 
 
-class Actor(nn.Module):
+class DBSave(ABC):
+    def save_to_db(self, label: str) -> int:
+        """Save the model to the database.
+
+        Note: we expect the model to be uniquely identified by run_id, label and model_label; but the id is guaranteed
+        to uniquely identify it.
+
+        @:param label identifying label for this model
+
+        @:return the id of the model in the database"""
+        model_tosave = orm.Model(model_label=self.config['model_label'], run_id=orm.run.id, label=label,
+                                 model_config=self.config, model_dict=self.state_dict())
+        orm.session.add(model_tosave)
+        orm.session.commit()
+        return model_tosave.id
+
+    def read_from_db(self, run_id: int, model_label: str, label: str) -> 'Actor':
+        try:
+            model = orm.session.query(orm.Model) \
+                .filter_by(run_id=run_id, label=label, model_label=model_label) \
+                .one()
+            a = self.__class__(**model.model_config)
+            a.load_state_dict(model.model_dict)
+            return a
+        except (NoResultFound, MultipleResultsFound) as e:
+            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}: {e}")
+            sys.exit(1)
+
+
+class Actor(nn.Module, DBSave):
     """Actor (Policy) Model."""
 
     def __init__(self, state_size, action_size, fc1_units=config['actor_fc1_units'],
@@ -97,39 +128,11 @@ class Actor(nn.Module):
         sep = "-" if len(label) > 0 else ""
         return os.path.join(directory, f"{self.config['model_label']}{sep}{label}.pth")
 
-    def save_to_db(self, label: str) -> int:
-        """Save the model to the database.
-
-        Note: we expect the model to be uniquely identified by run_id, label and model_label; but the id is guaranteed
-        to uniquely identify it.
-
-        @:param label identifying label for this model
-
-        @:return the id of the model in the database"""
-        model_tosave = orm.Model(model_label=self.config['model_label'], run_id=orm.run.id, label=label,
-                                 model_config=self.config, model_dict=self.state_dict())
-        orm.session.add(model_tosave)
-        orm.session.commit()
-        return model_tosave.id
-
-    @staticmethod
-    def read_from_db(run_id: int, model_label: str, label: str) -> 'Actor':
-        try:
-            model = orm.session.query(orm.Model) \
-                .filter_by(run_id=run_id, label=label, model_label=model_label) \
-                .one()
-            a = Actor(**model.model_config)
-            a.load_state_dict(model.model_dict)
-            return a
-        except (NoResultFound, MultipleResultsFound) as e:
-            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}: {e}")
-            sys.exit(1)
-
     def __repr__(self):
         return f'Actor({self.config})'
 
 
-class Critic(nn.Module):
+class Critic(nn.Module, DBSave):
     """Critic (Value) Model."""
 
     def __init__(self, state_size, action_size, agent_count=1,
@@ -197,38 +200,6 @@ class Critic(nn.Module):
     def _filename(self, label: str, directory: str) -> str:
         sep = "-" if len(label) > 0 else ""
         return os.path.join(directory, f"{self.config['model_label']}{sep}{label}.pth")
-
-    def save_to_db(self, label: str) -> int:
-        """Save the model to the database.
-
-        Note: we _expect_ the model to be uniquely identified by run_id, label and model_label; but the id is guaranteed
-        to uniquely identify it.
-
-        @:param label identifying label for this model
-
-        @:return the id of the model in the database"""
-        model_tosave = orm.Model(model_label=self.config['model_label'], run_id=orm.run.id, label=label,
-                                 model_config=self.config, model_dict=self.state_dict())
-        orm.session.add(model_tosave)
-        orm.session.commit()
-        return model_tosave.id
-
-    @staticmethod
-    def read_from_db(run_id: int, model_label: str, label: str) -> 'Actor':
-        """Read the model back from the database.
-
-        Note: Checks that the identifying features are indeed uniquely identifying.
-        """
-        try:
-            model = orm.session.query(orm.Model) \
-                .filter_by(run_id=run_id, label=label, model_label=model_label) \
-                .one()
-            c = Critic(**model.model_config)
-            c.load_state_dict(model.model_dict)
-            return c
-        except (NoResultFound, MultipleResultsFound) as e:
-            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}: {e}")
-            sys.exit(1)
 
     def __repr__(self):
         return f"Critic({self.config})"
