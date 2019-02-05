@@ -14,6 +14,8 @@ import pickle
 import torch.nn as nn
 # noinspection PyPep8Naming
 import torch.nn.functional as F
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
 from collabcompet.config import config
 import collabcompet.orm as orm
 import logging
@@ -112,18 +114,16 @@ class Actor(nn.Module):
 
     @staticmethod
     def read_from_db(run_id: int, model_label: str, label: str) -> 'Actor':
-        model = orm.session.query(orm.Model) \
-            .filter(orm.Model.run_id == run_id,
-                    orm.Model.label == label,
-                    orm.Model.model_label == model_label) \
-            .all()
-        if len(model) != 1:
+        try:
+            model = orm.session.query(orm.Model) \
+                .filter_by(run_id=run_id, label=label, model_label=model_label) \
+                .one()
+            a = Actor(**model.model_config)
+            a.load_state_dict(model.model_dict)
+            return a
+        except (NoResultFound, MultipleResultsFound):
             log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}, have {len(model)} models")
             sys.exit(1)
-        model = model[0]
-        a = Actor(**model.model_config)
-        a.load_state_dict(model.model_dict)
-        return a
 
     def __repr__(self):
         return f'Actor({self.config})'
@@ -219,18 +219,16 @@ class Critic(nn.Module):
 
         Note: Checks that the identifying features are indeed uniquely identifying.
         """
-        model = orm.session.query(orm.Model) \
-            .filter(orm.Model.run_id == run_id,
-                    orm.Model.label == label,
-                    orm.Model.model_label == model_label) \
-            .all()
-        if len(model) != 1:
+        try:
+            model = orm.session.query(orm.Model) \
+                .filter_by(run_id=run_id, label=label, model_label=model_label) \
+                .one()
+            c = Critic(**model.model_config)
+            c.load_state_dict(model.model_dict)
+            return c
+        except (NoResultFound, MultipleResultsFound):
             log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}, have {len(model)} models")
             sys.exit(1)
-        model = model[0]
-        c = Critic(**model.model_config)
-        c.load_state_dict(model.model_dict)
-        return c
 
     def __repr__(self):
         return f"Critic({self.config})"
