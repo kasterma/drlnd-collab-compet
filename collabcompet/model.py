@@ -49,6 +49,7 @@ class DBSave(ABC):
         return model_tosave.id
 
     def read_from_db(self, run_id: int, model_label: str, label: str) -> 'Actor':
+        # TODO: fix return type
         try:
             model = orm.session.query(orm.Model) \
                 .filter_by(run_id=run_id, label=label, model_label=model_label) \
