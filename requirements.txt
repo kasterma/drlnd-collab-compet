@@ -1,5 +1,5 @@
 # using local devpi server for caching
--i http://localhost:8989/root/pypi/+simple/
+# -i http://localhost:8989/root/pypi/+simple/
 
 absl-py==0.6.1
 alembic==1.0.6
