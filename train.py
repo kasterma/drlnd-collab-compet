@@ -2,14 +2,13 @@
 #
 # This code is the primary interface to start and evaluate the training for this project.
 import logging
-import os.path
 from collections import deque
 
 import click
 import numpy as np
 
 from collabcompet import *
-from collabcompet.agents import IndependentAgent, MADDPG
+from collabcompet.agents import MADDPG
 from collabcompet.config import config
 
 log = logging.getLogger("agent")
@@ -43,10 +42,8 @@ def random_test_run():
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--continue_run/--no-continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
 @click.option('--continue_run_id', default=1, help="The id of the run to continue")
-@click.option('--maddpg/--no-maddpg', default=True)
 @click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
-def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int,
-              maddpg: bool, save_models_every: int,
+def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int, save_models_every: int,
               scores_window: int = 100):
     """Perform a training run
 
@@ -62,13 +59,10 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     run_id = current_runid()
     log.info("Run with id %s", run_id)
     env = Tennis()
-    if maddpg:
-        agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
-                                       state_size=config['state_size'], action_size=config['action_size'],
-                                       actor_count=config['actor_count'],
-                                       run_id=run_id)
-    else:
-        agent: AgentInterface = IndependentAgent(run_id=run_id)
+    agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
+                                   state_size=config['state_size'], action_size=config['action_size'],
+                                   actor_count=config['actor_count'],
+                                   run_id=run_id)
     if continue_run:
         assert continue_run_id is not None
         log.info("Continuing run")
@@ -92,9 +86,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
-                # print(step_result.rewards)
                 score += step_result.rewards
-                # print(score)
                 if np.any(step_result.done):
                     break
                 state = step_result.next_state
@@ -120,17 +112,20 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
 
 
 @click.command()
-@click.option('--number_episodes', default=100, help='Number of episodes to train for.')
+@click.option('--number_episodes', default=100, help='Number of episodes to evaluate for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
-@click.option('--run_id', help='Run id for this run.', type=int)
-def evaluation_run(number_episodes: int, print_every: int, run_id=0, scores_window=100):
-    start_run(note=f"Evaluation run with models from run {run_id}")
+@click.option('--run_id', help='Run id for the model to evaluate.', type=int)
+@click.option('--label', default="", help="additional label under which the model was stored in the db")
+def evaluation_run(number_episodes: int, print_every: int, run_id: int, label: str, scores_window=100):
+    start_run(note=f"Evaluation run with models from run {run_id} with label {label}")
     log.info("Evaluate run with id %s", run_id)
     env = Tennis()
-    agent: AgentInterface = MADDPG(replay_memory_size=100000, state_size=24, action_size=2, actor_count=2,
-                                   run_id=f"agent-A-{run_id}")
-    assert agent.files_exist()
-    agent.load()
+    # TODO: get these arguments from the database (runs.config column)
+    agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
+                                   state_size=config['state_size'], action_size=config['action_size'],
+                                   actor_count=config['actor_count'],
+                                   run_id=run_id)
+    agent.load(run_id=run_id, label=label)
     state = env.reset(train_mode=False)
     scores = []
     scores_deque_max = deque(maxlen=scores_window)

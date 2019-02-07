@@ -51,7 +51,7 @@ class AgentInterface(ABC):
         pass
 
     @abstractmethod
-    def save(self, label: str) -> None:
+    def save(self, label: str = "") -> None:
         """Save with the label added to the filename"""
         pass
 
@@ -247,6 +247,6 @@ class MADDPG(AgentInterface):
         self.actor_2_optimizer.step()
 
         # ----------------------- update target networks ----------------------- #
-        Agent._soft_update(self.critic_local, self.critic_target, TAU)
-        Agent._soft_update(self.actor_1_local, self.actor_1_target, TAU)
-        Agent._soft_update(self.actor_2_local, self.actor_2_target, TAU)
+        self._soft_update(self.critic_local, self.critic_target, TAU)
+        self._soft_update(self.actor_1_local, self.actor_1_target, TAU)
+        self._soft_update(self.actor_2_local, self.actor_2_target, TAU)
