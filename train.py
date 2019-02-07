@@ -2,19 +2,24 @@
 #
 # This code is the primary interface to start and evaluate the training for this project.
 import logging
-import os.path
 from collections import deque
 
 import click
 import numpy as np
+from datetime import datetime
 
 from collabcompet import *
 from collabcompet.agents import IndependentAgent, MADDPG
 from collabcompet.config import config
+from collabcompet.tbWrapper import TBWrapper
 
 log = logging.getLogger("agent")
 
 DATA_DIR = config['data_dir']
+
+# tensorboard configuration
+tag = "test"
+tb = TBWrapper('./logs/logs-{}-{}'.format(tag, datetime.now()))
 
 
 @click.group()
@@ -62,13 +67,12 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     run_id = current_runid()
     log.info("Run with id %s", run_id)
     env = Tennis()
-    if maddpg:
-        agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
+
+    agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
                                        state_size=config['state_size'], action_size=config['action_size'],
                                        actor_count=config['actor_count'],
                                        run_id=run_id)
-    else:
-        agent: AgentInterface = IndependentAgent(run_id=run_id)
+
     if continue_run:
         assert continue_run_id is not None
         log.info("Continuing run")
@@ -92,6 +96,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
+                tb.add_scalar(tag, agent.loss)
                 # print(step_result.rewards)
                 score += step_result.rewards
                 # print(score)

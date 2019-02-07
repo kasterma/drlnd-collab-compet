@@ -1,5 +1,5 @@
 # using local devpi server for caching
--i http://localhost:8989/root/pypi/+simple/
+# -i http://localhost:8989/root/pypi/+simple/
 
 absl-py==0.6.1
 alembic==1.0.6
@@ -66,6 +66,7 @@ simplegeneric==0.8.1
 six==1.11.0
 SQLAlchemy==1.2.15
 tensorboard==1.7.0
+tensorboardX==1.4
 tensorflow==1.7.1
 termcolor==1.1.0
 terminado==0.8.1

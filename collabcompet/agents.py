@@ -305,7 +305,7 @@ class MADDPG(AgentInterface):
         self.actor_2_optimizer = optim.Adam(self.actor_2_local.parameters(), lr=LR_ACTOR, weight_decay=WEIGHT_DECAY)
         log.info("Actor2 local: %s", repr(self.actor_2_local))
         log.info("Actor2 target: %s", repr(self.actor_2_target))
-        
+
         # Critic Network
         # note gets the actions and observations from both actors and hence has sizes twice as large
         self.critic_local = Critic(2 * state_size, 2 * action_size, agent_count=self.actor_count,
@@ -320,6 +320,8 @@ class MADDPG(AgentInterface):
 
         self.step_count = 0
         self.update_every = UPDATE_EVERY
+
+        self.loss = [0., 0., 0.]
 
     def reset(self, idx=None):
         self.noise.reset()
@@ -435,3 +437,6 @@ class MADDPG(AgentInterface):
         Agent._soft_update(self.critic_local, self.critic_target, TAU)
         Agent._soft_update(self.actor_1_local, self.actor_1_target, TAU)
         Agent._soft_update(self.actor_2_local, self.actor_2_target, TAU)
+
+        # ------------------------- storing loss values ------------------------- #
+        self.loss = [actor_1_loss.item(), actor_2_loss.item(), critic_loss.item()]
