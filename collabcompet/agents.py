@@ -169,12 +169,12 @@ class MADDPG(AgentInterface):
         self.critic_target.save_to_db(label)
 
     def load(self, run_id: int, label: str = "") -> None:
-        self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", label)
-        self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", label)
-        self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", label)
-        self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", label)
-        self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", label)
-        self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", label)
+        self.actor_1_local = self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", label)
+        self.actor_1_target = self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", label)
+        self.actor_2_local = self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", label)
+        self.actor_2_target = self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", label)
+        self.critic_local = self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", label)
+        self.critic_target = self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", label)
 
     def files_exist(self, label: str = "") -> bool:
         """Check if the model files already exist.
