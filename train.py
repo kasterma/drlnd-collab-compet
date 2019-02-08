@@ -10,8 +10,9 @@ from datetime import datetime
 
 from collabcompet import *
 from collabcompet.agents import MADDPG
-from collabcompet.config import config, load_config_from_db
+from collabcompet.config import config
 from collabcompet.tbWrapper import TBWrapper
+from collabcompet.orm import load_config_from_db
 
 log = logging.getLogger("agent")
 
@@ -46,10 +47,12 @@ def random_test_run():
               help='Indicator for whether this is a continue of earlier run')
 @click.option('--continue_run_id', default=1, help="The id of the run to continue")
 @click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
+@click.option('--steps_after', default=100, help="Number of steps to take after 'trained'.")
 def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int, save_models_every: int,
-              scores_window: int = 100):
+              steps_after: int, scores_window: int = 100):
     """Perform a training run
 
+    :param steps_after:
     :param save_models_every: sve the models being trained every this many episodes
     :param maddpg: flag for use of maddpg agent versus independent agents
     :param continue_run: flag indicating this run should be a continuation of an earlier run
@@ -77,16 +80,16 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
         agent.load(continue_run_id)
     else:
         log.info("Starting new run")
-        assert not agent.files_exist()
     state = env.reset(train_mode=True)
     scores = []
     scores_deque = deque(maxlen=scores_window)
     max_mean_achieved = -1
+    trained_episode_idx = -1
     try:
         for episode_idx in range(number_episodes):
             # save models at the start of the run
             if episode_idx % save_models_every == 0:
-                agent.save(f"eps_{episode_idx}")
+                agent.save(episode_idx, f"eps_{episode_idx}")
             env.reset(train_mode=True)
             agent.reset()
             score = np.zeros(2)
@@ -120,11 +123,14 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
 
             if mean_achieved_score > 0.5:
                 log.info("train success")
+                trained_episode_idx = episode_idx
+
+            if trained_episode_idx > 0 and episode_idx > trained_episode_idx + steps_after:
                 break
     except KeyboardInterrupt:
         log.info("Stopped early by keyboard interrupt")
     log.info(f"Saving final models under id {run_id} and label {episode_idx + 1}")
-    agent.save(episode_idx + 1)
+    agent.save(episode_idx + 1, "final train value")
 
 
 @click.command()
