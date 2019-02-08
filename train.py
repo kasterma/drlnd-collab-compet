@@ -94,9 +94,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
-                tb.add_scalar("{}-actor_a".format(tag), agent.loss[0])
-                tb.add_scalar("{}-actor_b".format(tag), agent.loss[1])
-                tb.add_scalar("{}-critic".format(tag), agent.loss[2])
+                tb.add_scalar("run_id_{}-actor_a".format(run_id), agent.loss[0])
+                tb.add_scalar("run_id_{}-actor_b".format(run_id), agent.loss[1])
+                tb.add_scalar("run_id_{}-critic".format(run_id), agent.loss[2])
                 # print(step_result.rewards)
                 score += step_result.rewards
                 if np.any(step_result.done):
