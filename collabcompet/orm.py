@@ -45,6 +45,7 @@ class Model(Base):
     id = Column(Integer, primary_key=True)
     model_label = Column(String)
     run_id = Column(Integer, ForeignKey("runs.id"))
+    episode_idx = Column(Integer)
     label = Column(String)
     model_config = Column(PickleType)
     model_dict = Column(PickleType)

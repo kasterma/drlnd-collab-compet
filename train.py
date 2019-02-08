@@ -10,7 +10,7 @@ from datetime import datetime
 
 from collabcompet import *
 from collabcompet.agents import MADDPG
-from collabcompet.config import config
+from collabcompet.config import config, load_config_from_db
 from collabcompet.tbWrapper import TBWrapper
 
 log = logging.getLogger("agent")
@@ -84,6 +84,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     max_mean_achieved = -1
     try:
         for episode_idx in range(number_episodes):
+            # save models at the start of the run
+            if episode_idx % save_models_every == 0:
+                agent.save(f"eps_{episode_idx}")
             env.reset(train_mode=True)
             agent.reset()
             score = np.zeros(2)
@@ -114,15 +117,14 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
             if episode_idx % print_every == 0:
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
-            if episode_idx % save_models_every == 0:
-                agent.save(f"eps_{episode_idx}")
+
             if mean_achieved_score > 0.5:
                 log.info("train success")
                 break
     except KeyboardInterrupt:
         log.info("Stopped early by keyboard interrupt")
-    log.info("Saving models under id %s", run_id)
-    agent.save()
+    log.info(f"Saving final models under id {run_id} and label {episode_idx + 1}")
+    agent.save(episode_idx + 1)
 
 
 @click.command()
@@ -132,6 +134,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
 @click.option('--label', default="", help="additional label under which the model was stored in the db")
 def evaluation_run(number_episodes: int, print_every: int, run_id: int, label: str, scores_window=100):
     start_run(note=f"Evaluation run with models from run {run_id} with label {label}")
+    load_config_from_db(run_id)
     log.info("Evaluate run with id %s", run_id)
     env = Tennis()
     # TODO: get these arguments from the database (runs.config column)

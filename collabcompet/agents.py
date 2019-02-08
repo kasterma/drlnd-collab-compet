@@ -51,17 +51,13 @@ class AgentInterface(ABC):
         pass
 
     @abstractmethod
-    def save(self, label: str = "") -> None:
+    def save(self,  episode_idx: int, label: str = "") -> None:
         """Save with the label added to the filename"""
         pass
 
     @abstractmethod
-    def load(self, run_id: int, label: str = "") -> None:
+    def load(self, run_id: int,  episode_idx: int, label: str = "") -> None:
         """Load with the label added to the filename"""
-        pass
-
-    @abstractmethod
-    def files_exist(self) -> bool:
         pass
 
     @staticmethod
@@ -162,38 +158,21 @@ class MADDPG(AgentInterface):
             actions += self.noise.sample()
         return actions
 
-    def save(self, label: str = "") -> None:
-        self.actor_1_local.save_to_db(label)
-        self.actor_1_target.save_to_db(label)
-        self.actor_2_local.save_to_db(label)
-        self.actor_2_target.save_to_db(label)
-        self.critic_local.save_to_db(label)
-        self.critic_target.save_to_db(label)
+    def save(self, episode_idx: int, label: str = "") -> None:
+        self.actor_1_local.save_to_db(episode_idx, label)
+        self.actor_1_target.save_to_db(episode_idx, label)
+        self.actor_2_local.save_to_db(episode_idx, label)
+        self.actor_2_target.save_to_db(episode_idx, label)
+        self.critic_local.save_to_db(episode_idx, label)
+        self.critic_target.save_to_db(episode_idx, label)
 
-    def load(self, run_id: int, label: str = "") -> None:
-        self.actor_1_local = self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", label)
-        self.actor_1_target = self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", label)
-        self.actor_2_local = self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", label)
-        self.actor_2_target = self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", label)
-        self.critic_local = self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", label)
-        self.critic_target = self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", label)
-
-    def files_exist(self, label: str = "") -> bool:
-        """Check if the model files already exist.
-
-        Note: also checks that if any exist all exists.
-        """
-        f1 = self.actor_1_local.file_exists(label, config['data_dir'])
-        f2 = self.actor_1_target.file_exists(label, config['data_dir'])
-        f3 = self.actor_2_local.file_exists(label, config['data_dir'])
-        f4 = self.actor_2_target.file_exists(label, config['data_dir'])
-        f5 = self.critic_local.file_exists(label, config['data_dir'])
-        f6 = self.critic_target.file_exists(label, config['data_dir'])
-        all_files = np.all([f1, f2, f3, f4, f5, f6])
-        any_files = np.any([f1, f2, f3, f4, f5, f6])
-        if any_files:
-            assert all_files
-        return all_files
+    def load(self, run_id: int, episode_idx: int, label: str = "") -> None:
+        self.actor_1_local = self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", episode_idx, label)
+        self.actor_1_target = self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", episode_idx, label)
+        self.actor_2_local = self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", episode_idx, label)
+        self.actor_2_target = self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", episode_idx, label)
+        self.critic_local = self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", episode_idx, label)
+        self.critic_target = self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", episode_idx, label)
 
     # noinspection PyUnresolvedReferences
     def _learn(self):
