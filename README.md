@@ -50,18 +50,10 @@ logging configuration is in `logging.yaml` and the training and network configur
 
 # Notes
 
-1. importing config into alembic env makes other class misbehave
-2. logging level sqlalchemy not read; qualname in logging.yaml not working
-3. git diff stash@{0}
-4. expand use of config.py to all modules
-
-
-1. simplify loading data
-2. combine code
-3. saving models intermediate
-
-4. on hover get info on what you are pointing to
-5. analysis tools
+1. on hover get info on what you are pointing to
+2. analysis tools
+3. add @click to analysis tools
+4. param no graphics
 
 # to see the tensorboard
 

@@ -166,13 +166,13 @@ class MADDPG(AgentInterface):
         self.critic_local.save_to_db(episode_idx, label)
         self.critic_target.save_to_db(episode_idx, label)
 
-    def load(self, run_id: int, episode_idx: int, label: str = "") -> None:
-        self.actor_1_local = self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", episode_idx, label)
-        self.actor_1_target = self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", episode_idx, label)
-        self.actor_2_local = self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", episode_idx, label)
-        self.actor_2_target = self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", episode_idx, label)
-        self.critic_local = self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", episode_idx, label)
-        self.critic_target = self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", episode_idx, label)
+    def load(self, run_id: int, episode_idx: int) -> None:
+        self.actor_1_local = self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", episode_idx)
+        self.actor_1_target = self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", episode_idx)
+        self.actor_2_local = self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", episode_idx)
+        self.actor_2_target = self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", episode_idx)
+        self.critic_local = self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", episode_idx)
+        self.critic_target = self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", episode_idx)
 
     # noinspection PyUnresolvedReferences
     def _learn(self):
