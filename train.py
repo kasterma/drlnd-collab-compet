@@ -109,6 +109,8 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
             scores_deque.append(episode_score)
             mean_achieved_score = np.mean(scores_deque)
             max_mean_achieved = max(mean_achieved_score, max_mean_achieved)
+            tb.add_scalar("run_id_{}-score".format(run_id), score)
+            tb.add_scalar("run_id_{}-mean-scores".format(run_id), mean_achieved_score)
             if episode_idx % print_every == 0:
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
