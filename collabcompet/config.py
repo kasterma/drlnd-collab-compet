@@ -7,7 +7,6 @@ import yaml
 import torch
 import logging
 
-# noinspection PyUnresolvedReferences
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 with open("logging.yaml") as log_conf_file:
@@ -19,3 +18,8 @@ log = logging.getLogger("config")
 with open("config.yaml") as conf_file:
     config = yaml.load(conf_file)
     log.info(f"Running with config: {config}")
+
+
+def set_config(new_config):
+    global config
+    config = new_config

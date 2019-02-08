@@ -62,3 +62,7 @@ logging configuration is in `logging.yaml` and the training and network configur
 
 4. on hover get info on what you are pointing to
 5. analysis tools
+
+# to see the tensorboard
+
+    tensorboard --logdir logs

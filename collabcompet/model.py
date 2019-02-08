@@ -33,7 +33,7 @@ def hidden_init(layer) -> Tuple[float, float]:
 
 
 class DBSave(ABC):
-    def save_to_db(self, label: str) -> int:
+    def save_to_db(self, episode_idx: int, label: str) -> int:
         """Save the model to the database.
 
         Note: we expect the model to be uniquely identified by run_id, label and model_label; but the id is guaranteed
@@ -42,17 +42,18 @@ class DBSave(ABC):
         @:param label identifying label for this model
 
         @:return the id of the model in the database"""
-        model_tosave = orm.Model(model_label=self.config['model_label'], run_id=orm.run.id, label=label,
+        model_tosave = orm.Model(model_label=self.config['model_label'],
+                                 run_id=orm.run.id, episode_idx=episode_idx, label=label,
                                  model_config=self.config, model_dict=self.state_dict())
         orm.session.add(model_tosave)
         orm.session.commit()
         return model_tosave.id
 
-    def read_from_db(self, run_id: int, model_label: str, label: str) -> 'Actor':
+    def read_from_db(self, run_id: int, model_label: str, episode_idx: int, label: str) -> 'Actor':
         # TODO: fix return type
         try:
             model = orm.session.query(orm.Model) \
-                .filter_by(run_id=run_id, label=label, model_label=model_label) \
+                .filter_by(run_id=run_id, episode_idx=episode_idx, label=label, model_label=model_label) \
                 .one()
             a = self.__class__(**model.model_config)
             a.load_state_dict(model.model_dict)

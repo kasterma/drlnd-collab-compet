@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 import yaml
 import logging
 import os
-from collabcompet.config import config
+from collabcompet.config import config, set_config
 from alembic.config import Config
 from alembic import command
 
@@ -45,6 +45,7 @@ class Model(Base):
     id = Column(Integer, primary_key=True)
     model_label = Column(String)
     run_id = Column(Integer, ForeignKey("runs.id"))
+    episode_idx = Column(Integer)
     label = Column(String)
     model_config = Column(PickleType)
     model_dict = Column(PickleType)
@@ -92,3 +93,10 @@ def save_score(episode_idx, score):
     score = EpisodeScore(run_id=run.id, episode_idx=episode_idx, score=score)
     session.add(score)
     session.commit()
+
+
+def load_config_from_db(run_id: int):
+    runs = session.query(Run).filter(Run.id == run_id).all()
+    assert len(runs) == 1
+    set_config(yaml.load(runs[0].config))
+    log.info(f"Loaded config: {config}")

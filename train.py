@@ -12,6 +12,7 @@ from collabcompet import *
 from collabcompet.agents import MADDPG
 from collabcompet.config import config
 from collabcompet.tbWrapper import TBWrapper
+from collabcompet.orm import load_config_from_db
 
 log = logging.getLogger("agent")
 
@@ -46,10 +47,12 @@ def random_test_run():
               help='Indicator for whether this is a continue of earlier run')
 @click.option('--continue_run_id', default=1, help="The id of the run to continue")
 @click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
+@click.option('--steps_after', default=100, help="Number of steps to take after 'trained'.")
 def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int, save_models_every: int,
-              scores_window: int = 100):
+              steps_after: int, scores_window: int = 100):
     """Perform a training run
 
+    :param steps_after:
     :param save_models_every: sve the models being trained every this many episodes
     :param maddpg: flag for use of maddpg agent versus independent agents
     :param continue_run: flag indicating this run should be a continuation of an earlier run
@@ -77,13 +80,16 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
         agent.load(continue_run_id)
     else:
         log.info("Starting new run")
-        assert not agent.files_exist()
     state = env.reset(train_mode=True)
     scores = []
     scores_deque = deque(maxlen=scores_window)
     max_mean_achieved = -1
+    trained_episode_idx = -1
     try:
         for episode_idx in range(number_episodes):
+            # save models at the start of the run
+            if episode_idx % save_models_every == 0:
+                agent.save(episode_idx, f"eps_{episode_idx}")
             env.reset(train_mode=True)
             agent.reset()
             score = np.zeros(2)
@@ -94,9 +100,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
-                tb.add_scalar("run_id_{}-actor_a".format(run_id), agent.loss[0])
-                tb.add_scalar("run_id_{}-actor_b".format(run_id), agent.loss[1])
-                tb.add_scalar("run_id_{}-critic".format(run_id), agent.loss[2])
+                tb.add_scalar("actor_a", agent.loss[0])
+                tb.add_scalar("actor_b", agent.loss[1])
+                tb.add_scalar("critic", agent.loss[2])
                 # print(step_result.rewards)
                 score += step_result.rewards
                 if np.any(step_result.done):
@@ -109,18 +115,22 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
             scores_deque.append(episode_score)
             mean_achieved_score = np.mean(scores_deque)
             max_mean_achieved = max(mean_achieved_score, max_mean_achieved)
+            tb.add_scalar("score".format(run_id), episode_score)
+            tb.add_scalar("mean-scores".format(run_id), mean_achieved_score)
             if episode_idx % print_every == 0:
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
-            if episode_idx % save_models_every == 0:
-                agent.save(f"eps_{episode_idx}")
+
             if mean_achieved_score > 0.5:
                 log.info("train success")
+                trained_episode_idx = episode_idx
+
+            if trained_episode_idx > 0 and episode_idx > trained_episode_idx + steps_after:
                 break
     except KeyboardInterrupt:
         log.info("Stopped early by keyboard interrupt")
-    log.info("Saving models under id %s", run_id)
-    agent.save()
+    log.info(f"Saving final models under id {run_id} and label {episode_idx + 1}")
+    agent.save(episode_idx + 1, "final train value")
 
 
 @click.command()
@@ -130,6 +140,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
 @click.option('--label', default="", help="additional label under which the model was stored in the db")
 def evaluation_run(number_episodes: int, print_every: int, run_id: int, label: str, scores_window=100):
     start_run(note=f"Evaluation run with models from run {run_id} with label {label}")
+    load_config_from_db(run_id)
     log.info("Evaluate run with id %s", run_id)
     env = Tennis()
     # TODO: get these arguments from the database (runs.config column)
