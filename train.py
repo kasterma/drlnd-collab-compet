@@ -94,9 +94,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
-                tb.add_scalar("run_id_{}-actor_a".format(run_id), agent.loss[0])
-                tb.add_scalar("run_id_{}-actor_b".format(run_id), agent.loss[1])
-                tb.add_scalar("run_id_{}-critic".format(run_id), agent.loss[2])
+                tb.add_scalar("actor_a", agent.loss[0])
+                tb.add_scalar("actor_b", agent.loss[1])
+                tb.add_scalar("critic", agent.loss[2])
                 # print(step_result.rewards)
                 score += step_result.rewards
                 if np.any(step_result.done):
@@ -109,8 +109,8 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
             scores_deque.append(episode_score)
             mean_achieved_score = np.mean(scores_deque)
             max_mean_achieved = max(mean_achieved_score, max_mean_achieved)
-            tb.add_scalar("run_id_{}-score".format(run_id), episode_score)
-            tb.add_scalar("run_id_{}-mean-scores".format(run_id), mean_achieved_score)
+            tb.add_scalar("score".format(run_id), episode_score)
+            tb.add_scalar("mean-scores".format(run_id), mean_achieved_score)
             if episode_idx % print_every == 0:
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
