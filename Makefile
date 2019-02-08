@@ -33,3 +33,4 @@ files/Tennis.ipynb:
 setup: files/Tennis.ipynb files/Tennis.app virtualenv
 	mkdir -p data
 	mkdir -p logs
+	mkdir -p plots

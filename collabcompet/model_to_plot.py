@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-from collabcompet import config
+from collabcompet.config import config
 from collabcompet.agents import MADDPG
 from collabcompet.orm import session, Model
 
@@ -23,7 +23,7 @@ class NNAnalysis:
                                run_id=self.run_id)
 
         for episode in self.episode_list:
-            agent.load(run_id, episode)
+            agent.load(run_id, int(episode))
 
             for k, v in agent.actor_1_local.named_parameters():
                 self.data["actor_1"][k][episode] = v.detach().numpy()
