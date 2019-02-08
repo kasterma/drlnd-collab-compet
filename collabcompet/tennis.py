@@ -28,8 +28,8 @@ class StepResult:
 
 
 class Tennis:
-    def __init__(self):
-        self.env = UnityEnvironment(file_name="files/Tennis.app")
+    def __init__(self, no_graphics=False):
+        self.env = UnityEnvironment(file_name="files/Tennis.app", no_graphics=no_graphics)
         log.debug("Tennis environment set up")
 
     def reset(self, train_mode=True) -> np.ndarray:

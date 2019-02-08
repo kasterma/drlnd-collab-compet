@@ -12,7 +12,7 @@ from collabcompet import *
 from collabcompet.agents import MADDPG
 from collabcompet.config import config
 from collabcompet.tbWrapper import TBWrapper
-from collabcompet.orm import load_config_from_db
+from collabcompet.orm import load_config_from_db, session, Model
 
 log = logging.getLogger("agent")
 
@@ -45,13 +45,15 @@ def random_test_run():
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--continue_run/--no-continue_run', default=False,
               help='Indicator for whether this is a continue of earlier run')
+@click.option('--graphics/--no-graphics', default=True)
 @click.option('--continue_run_id', default=1, help="The id of the run to continue")
 @click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
 @click.option('--steps_after', default=100, help="Number of steps to take after 'trained'.")
-def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int, save_models_every: int,
-              steps_after: int, scores_window: int = 100):
+def train_run(number_episodes: int, print_every: int, continue_run: bool, graphics: bool, continue_run_id: int,
+              save_models_every: int, steps_after: int, scores_window: int = 100):
     """Perform a training run
 
+    :param graphics:
     :param steps_after:
     :param save_models_every: sve the models being trained every this many episodes
     :param maddpg: flag for use of maddpg agent versus independent agents
@@ -64,7 +66,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     start_run(note="Training run")
     run_id = current_runid()
     log.info("Run with id %s", run_id)
-    env = Tennis()
+    env = Tennis(no_graphics=graphics)
 
     tb = TBWrapper('./logs/logs-run_id_{}-{}'.format(run_id, datetime.now()))
 
@@ -77,7 +79,8 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     if continue_run:
         assert continue_run_id is not None
         log.info("Continuing run")
-        agent.load(continue_run_id)
+        max_episode_idx = session.query(Model).filter_by(run_id=run_id).max(Model.episode_idx).one()
+        agent.load(continue_run_id, max_episode_idx)
     else:
         log.info("Starting new run")
     state = env.reset(train_mode=True)
@@ -148,7 +151,9 @@ def evaluation_run(number_episodes: int, print_every: int, run_id: int, label: s
                                    state_size=config['state_size'], action_size=config['action_size'],
                                    actor_count=config['actor_count'],
                                    run_id=run_id)
-    agent.load(run_id=run_id, label=label)
+    #max_episode_idx = np.max([m.episode_idx for m in session.query(Model).filter_by(run_id=run_id).all()])
+    max_episode_idx = session.query(Model).filter_by(run_id=run_id).max(Model.episode_idx).one()
+    agent.load(run_id=run_id, episode_idx=max_episode_idx)
     state = env.reset(train_mode=False)
     scores = []
     scores_deque_max = deque(maxlen=scores_window)

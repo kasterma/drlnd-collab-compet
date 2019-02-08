@@ -49,17 +49,17 @@ class DBSave(ABC):
         orm.session.commit()
         return model_tosave.id
 
-    def read_from_db(self, run_id: int, model_label: str, episode_idx: int, label: str) -> 'Actor':
+    def read_from_db(self, run_id: int, model_label: str, episode_idx: int) -> 'Actor':
         # TODO: fix return type
         try:
             model = orm.session.query(orm.Model) \
-                .filter_by(run_id=run_id, episode_idx=episode_idx, label=label, model_label=model_label) \
+                .filter_by(run_id=run_id, episode_idx=episode_idx, model_label=model_label) \
                 .one()
             a = self.__class__(**model.model_config)
             a.load_state_dict(model.model_dict)
             return a
         except (NoResultFound, MultipleResultsFound) as e:
-            log.error(f"model not uniquely identified by {run_id}, {label}, {model_label}: {e}")
+            log.error(f"model not uniquely identified by {run_id}, {model_label}: {e}")
             sys.exit(1)
 
 
