@@ -250,9 +250,9 @@ class MADDPG(AgentInterface):
 
         # ----------------------- update target networks ----------------------- #
 
-        Agent._soft_update(self.critic_local, self.critic_target, TAU)
-        Agent._soft_update(self.actor_1_local, self.actor_1_target, TAU)
-        Agent._soft_update(self.actor_2_local, self.actor_2_target, TAU)
+        self._soft_update(self.critic_local, self.critic_target, TAU)
+        self._soft_update(self.actor_1_local, self.actor_1_target, TAU)
+        self._soft_update(self.actor_2_local, self.actor_2_target, TAU)
 
         # ------------------------- storing loss values ------------------------- #
         self.loss = [actor_1_loss.item(), actor_2_loss.item(), critic_loss.item()]
