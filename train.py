@@ -17,10 +17,6 @@ log = logging.getLogger("agent")
 
 DATA_DIR = config['data_dir']
 
-# tensorboard configuration
-tag = "test"
-tb = TBWrapper('./logs/logs-{}-{}'.format(tag, datetime.now()))
-
 
 @click.group()
 def tennis():
@@ -46,7 +42,8 @@ def random_test_run():
 @click.command(name="train")
 @click.option('--number_episodes', default=10000, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
-@click.option('--continue_run/--no-continue_run', default=False, help='Indicator for whether this is a continue of earlier run')
+@click.option('--continue_run/--no-continue_run', default=False,
+              help='Indicator for whether this is a continue of earlier run')
 @click.option('--continue_run_id', default=1, help="The id of the run to continue")
 @click.option('--save_models_every', default=50, help='Save the models trained every this many episodes')
 def train_run(number_episodes: int, print_every: int, continue_run: bool, continue_run_id: int, save_models_every: int,
@@ -66,11 +63,13 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
     log.info("Run with id %s", run_id)
     env = Tennis()
 
-    agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
-                                   state_size=config['state_size'],
-                                   action_size=config['action_size'],
-                                   actor_count=config['actor_count'],
-                                   run_id=run_id)
+    tb = TBWrapper('./logs/logs-run_id_{}-{}'.format(run_id, datetime.now()))
+
+    agent: MADDPG = MADDPG(replay_memory_size=config['replay_memory_size'],
+                           state_size=config['state_size'],
+                           action_size=config['action_size'],
+                           actor_count=config['actor_count'],
+                           run_id=run_id)
 
     if continue_run:
         assert continue_run_id is not None
@@ -95,7 +94,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, contin
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
-                tb.add_scalar(tag, agent.loss)
+                tb.add_scalar("{}-actor_a".format(tag), agent.loss[0])
+                tb.add_scalar("{}-actor_b".format(tag), agent.loss[1])
+                tb.add_scalar("{}-critic".format(tag), agent.loss[2])
                 # print(step_result.rewards)
                 score += step_result.rewards
                 if np.any(step_result.done):
