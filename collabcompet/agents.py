@@ -10,6 +10,7 @@ import logging
 import random
 
 import numpy as np
+import pandas as pd
 import torch
 # noinspection PyPep8Naming
 import torch.nn.functional as F
@@ -166,13 +167,28 @@ class MADDPG(AgentInterface):
         self.critic_local.save_to_db(episode_idx, label)
         self.critic_target.save_to_db(episode_idx, label)
 
-    def load(self, run_id: int, episode_idx: int) -> None:
-        self.actor_1_local = self.actor_1_local.read_from_db(run_id, f"actor_1_local-run_{run_id}", episode_idx)
-        self.actor_1_target = self.actor_1_target.read_from_db(run_id, f"actor_1_target-run_{run_id}", episode_idx)
-        self.actor_2_local = self.actor_2_local.read_from_db(run_id, f"actor_2_local-run_{run_id}", episode_idx)
-        self.actor_2_target = self.actor_2_target.read_from_db(run_id, f"actor_2_target-run_{run_id}", episode_idx)
-        self.critic_local = self.critic_local.read_from_db(run_id, f"critic_local-run_{run_id}", episode_idx)
-        self.critic_target = self.critic_target.read_from_db(run_id, f"critic_target-run_{run_id}", episode_idx)
+    def load(self, run_id: int, episode_idx: int) -> 'MADDPG':
+        self.actor_1_local = self.actor_1_local.read_from_db(run_id, "actor_1_local-run%", episode_idx)
+        self.actor_1_target = self.actor_1_target.read_from_db(run_id, "actor_1_target-run%", episode_idx)
+        self.actor_2_local = self.actor_2_local.read_from_db(run_id, "actor_2_local-run%", episode_idx)
+        self.actor_2_target = self.actor_2_target.read_from_db(run_id, "actor_2_target-run%", episode_idx)
+        self.critic_local = self.critic_local.read_from_db(run_id, "critic_local-run%", episode_idx)
+        self.critic_target = self.critic_target.read_from_db(run_id, "critic_target-run%", episode_idx)
+        return self
+
+    def asDataFrame(self, episode_idx: int = -1):
+        df_actor_1_local = pd.concat([pd.DataFrame({'label': k, 'value': v.detach().flatten()})
+                                      for k, v in self.actor_1_local.named_parameters()])
+        df_actor_1_local['net'] = 'actor_1_local'
+        df_actor_1_target = pd.concat([pd.DataFrame({'label': k, 'value': v.detach().flatten()})
+                                      for k, v in self.actor_1_target.named_parameters()])
+        df_actor_1_target['net'] = 'actor_1_target'
+
+        df = pd.concat([df_actor_1_local, df_actor_1_target])
+
+        df['episode_idx'] = episode_idx
+
+        return df
 
     # noinspection PyUnresolvedReferences
     def _learn(self):

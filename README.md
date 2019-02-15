@@ -53,7 +53,6 @@ logging configuration is in `logging.yaml` and the training and network configur
 1. on hover get info on what you are pointing to
 2. analysis tools
 3. add @click to analysis tools
-4. param no graphics
 
 # to see the tensorboard
 

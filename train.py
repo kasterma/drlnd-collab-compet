@@ -79,8 +79,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
     if continue_run:
         assert continue_run_id is not None
         log.info("Continuing run")
-        max_episode_idx = session.query(Model).filter_by(run_id=run_id).max(Model.episode_idx).one()
-        agent.load(continue_run_id, max_episode_idx)
+        max_episode_idx = np.max([m.episode_idx for m in session.query(Model).filter_by(run_id=continue_run_id).all()])
+        log.info(f"model episode id {max_episode_idx}")
+        agent.load(continue_run_id, int(max_episode_idx))
     else:
         log.info("Starting new run")
     state = env.reset(train_mode=True)
@@ -124,7 +125,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)
 
-            if mean_achieved_score > 0.5:
+            if trained_episode_idx < 0 and mean_achieved_score > 0.5:
                 log.info("train success")
                 trained_episode_idx = episode_idx
 
@@ -150,10 +151,9 @@ def evaluation_run(number_episodes: int, print_every: int, run_id: int, label: s
     agent: AgentInterface = MADDPG(replay_memory_size=config['replay_memory_size'],
                                    state_size=config['state_size'], action_size=config['action_size'],
                                    actor_count=config['actor_count'],
-                                   run_id=run_id)
-    #max_episode_idx = np.max([m.episode_idx for m in session.query(Model).filter_by(run_id=run_id).all()])
-    max_episode_idx = session.query(Model).filter_by(run_id=run_id).max(Model.episode_idx).one()
-    agent.load(run_id=run_id, episode_idx=max_episode_idx)
+                                   run_id=current_runid())
+    max_episode_idx = np.max([m.episode_idx for m in session.query(Model).filter_by(run_id=run_id).all()])
+    agent.load(run_id=run_id, episode_idx=int(max_episode_idx))
     state = env.reset(train_mode=False)
     scores = []
     scores_deque_max = deque(maxlen=scores_window)
@@ -164,7 +164,7 @@ def evaluation_run(number_episodes: int, print_every: int, run_id: int, label: s
         ct = 0
         while True:
             ct += 1
-            action = agent.get_action(state)
+            action = agent.get_action(state, add_noise=False)
             step_result = env.step(action)
             score += step_result.rewards
             if np.any(step_result.done):
