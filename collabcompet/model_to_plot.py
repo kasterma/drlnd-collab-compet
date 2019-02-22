@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from collabcompet.config import config
 from collabcompet.agents import MADDPG
-from collabcompet.orm import session, Model
+from collabcompet.orm import session, Model, load_config_from_db
 
 
 class NNAnalysis:
@@ -14,6 +14,7 @@ class NNAnalysis:
     def __init__(self, run_id):
 
         self.run_id = run_id
+        load_config_from_db(run_id)
         self.data = defaultdict(lambda: defaultdict(dict))
         self.episode_list = np.unique([m.episode_idx for m in session.query(Model).filter_by(run_id=self.run_id).all()])
 
