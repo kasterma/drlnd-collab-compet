@@ -53,6 +53,8 @@ logging configuration is in `logging.yaml` and the training and network configur
 1. on hover get info on what you are pointing to
 2. analysis tools
 3. add @click to analysis tools
+4. do this on a simpler problem (smaller networks so we can plot full overview over time)
+5. clusters of weights changing over time; can we correlate this between layers
 
 # to see the tensorboard
 
