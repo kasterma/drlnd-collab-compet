@@ -72,3 +72,21 @@ class NNAnalysis:
                                      vmin=-0.1, vmax=0.1)
         plt.savefig(f"plots/plot-fc2.weights.png")
         plt.show()
+
+    def get_wts_over_episodes(self, label="fc2.weight", net="actor_1_local", idx=2):
+        wts = self.dats.loc[(self.dats.label == label) & (self.dats.net == net)]
+        return wts.loc[idx, ['episode_idx', 'value']].set_index('episode_idx')
+
+    def plot_wt(self, ):
+        for idx in range(1, 11):
+            wts = self.get_wts_over_episodes(idx=idx)
+            wts.plot(title=f"idx{idx}")
+        plt.show()
+
+    def compute_corss(self):
+        cors = np.zeros((10, 10))
+        for i in range(0, 10):
+            for j in range(0, 10):
+                cors[i, j] = self.get_wts_over_episodes(idx=i).loc[:, "value"].corr(
+                    self.get_wts_over_episodes(idx=j).loc[:, "value"])
+        return cors
