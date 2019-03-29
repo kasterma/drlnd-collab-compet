@@ -31,6 +31,13 @@ class NNAnalysis:
     def sort_dat(self, d, nrow, ncol, dat_sort_idx):
         return d.flatten()[dat_sort_idx].reshape(nrow, ncol)
 
+    def diff_dats_range_sort(self, epi_2, epi_1):
+        dat = self.dats
+        actor_1_local_fc2wts = dat.loc[(dat.label == "fc2.weight") & (dat.net == "actor_1_local")]
+        diff_series = actor_1_local_fc2wts[actor_1_local_fc2wts.loc[:, 'episode_idx'] == epi_2].loc[:, 'value'] - \
+                      actor_1_local_fc2wts[actor_1_local_fc2wts.loc[:, 'episode_idx'] == epi_1].loc[:, 'value']
+        return np.argsort(diff_series)
+
     def diff_episode_range_sort(self, epi_2, epi_1):
         actor = "actor_1"
         param = "fc2.weight"
@@ -38,31 +45,30 @@ class NNAnalysis:
         return np.argsort(dat_sort_idx_diff.flatten())
 
     def plot(self):
-        dat_sort_idx = self.diff_episode_range_sort(2350, 2400)
+        dat_sort_idx = self.diff_dats_range_sort(2050, 2400)
         ncols = 3
         nrows = len(self.episode_list) // ncols
         if ((len(self.episode_list) - 1) % 3) != 0:
             nrows += 1
 
         print(nrows)
-        actor = "actor_1"
+        wts = self.dats.loc[(self.dats.label == "fc2.weight") & (self.dats.net == "actor_1_local")]
 
-        for i, key in enumerate(self.data[actor]):
-            print(key)
-            if key == "fc2.weight":
-                print(key)
-                fig, axs = plt.subplots(nrows=nrows, ncols=ncols)
-                print(axs)
-                for idx in range(len(self.episode_list) - 1):
-                    diff = self.data[actor][key][self.episode_list[idx + 1]] - self.data[actor][key][
-                        self.episode_list[idx]]
-                    if len(diff.shape) == 1:
-                        diff = np.expand_dims(diff, 0)
-                    pos_c = idx % ncols
-                    pos_r = idx // ncols
-                    print(pos_c, pos_r)
-                    axs[pos_r, pos_c].imshow(self.sort_dat(diff, diff.shape[0], diff.shape[1], dat_sort_idx),
-                                             interpolation="nearest", aspect='auto', cmap='seismic', label=key,
-                                             vmin=-0.1, vmax=0.1)
-                plt.savefig(f"plots/plot-{key}.png")
-                plt.show()
+        fig, axs = plt.subplots(nrows=nrows, ncols=ncols)
+        print(axs)
+        for idx in range(len(self.episode_list) - 1):
+            diff = wts.loc[wts.loc[:, 'episode_idx'] == self.episode_list[idx + 1]].loc[:, 'value'] - \
+                  wts.loc[wts.loc[:, 'episode_idx'] == self.episode_list[idx]].loc[:, 'value']
+
+            diff = np.array(diff).reshape((150, 250))
+
+            if len(diff.shape) == 1:
+                diff = np.expand_dims(diff, 0)
+            pos_c = idx % ncols
+            pos_r = idx // ncols
+            print(pos_c, pos_r)
+            axs[pos_r, pos_c].imshow(self.sort_dat(diff, diff.shape[0], diff.shape[1], dat_sort_idx),
+                                     interpolation="nearest", aspect='auto', cmap='seismic', label="fc2.weights",
+                                     vmin=-0.1, vmax=0.1)
+        plt.savefig(f"plots/plot-fc2.weights.png")
+        plt.show()
