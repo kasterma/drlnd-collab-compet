@@ -41,7 +41,7 @@ def random_test_run():
 
 
 @click.command(name="train")
-@click.option('--number_episodes', default=10000, help='Number of episodes to train for.')
+@click.option('--number_episodes', default=10_000, help='Number of episodes to train for.')
 @click.option('--print_every', default=1, help='Print current score every this many episodes')
 @click.option('--continue_run/--no-continue_run', default=False,
               help='Indicator for whether this is a continue of earlier run')
@@ -66,7 +66,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
     start_run(note="Training run")
     run_id = current_runid()
     log.info("Run with id %s", run_id)
-    env = Tennis(no_graphics=graphics)
+    env = Tennis(no_graphics=not graphics)
 
     tb = TBWrapper('./logs/logs-run_id_{}-{}'.format(run_id, datetime.now()))
 

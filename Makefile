@@ -34,3 +34,10 @@ setup: files/Tennis.ipynb files/Tennis.app virtualenv
 	mkdir -p data
 	mkdir -p logs
 	mkdir -p plots
+
+train-run:
+	python train.py train --print_every=50 --no-graphics --steps_after=1000
+
+tensorboard:
+	echo http://localhost:6006/
+	tensorboard --logdir logs/ --debug

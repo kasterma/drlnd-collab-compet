@@ -60,7 +60,7 @@ def create_database():
 
 dbinit = not os.path.isfile(config['database_file'])
 
-engine = create_engine(f"sqlite:///{config['database_file']}")
+engine = create_engine(f"sqlite:///{config['database_file']}", connect_args={'check_same_thread': False})
 if dbinit:
     create_database()
 
