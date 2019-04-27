@@ -38,6 +38,11 @@ setup: files/Tennis.ipynb files/Tennis.app virtualenv
 train-run:
 	python train.py train --print_every=50 --no-graphics --steps_after=1000
 
+# steps_after long enough that we run all 10_000 steps always
+train-run-full:
+	python train.py train --print_every=50 --no-graphics --steps_after=10000
+
+
 tensorboard:
 	echo http://localhost:6006/
 	tensorboard --logdir logs/ --debug

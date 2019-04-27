@@ -51,6 +51,25 @@ class Model(Base):
     model_dict = Column(PickleType)
 
 
+class CriticInput(Base):
+    __tablename__ = "criticinputs"
+
+    id = Column(Integer, primary_key=True)
+    state = Column(PickleType)
+    actions = Column(PickleType)
+
+
+class CriticValue(Base):
+    __tablename__ = "criticvalues"
+
+    id = Column(Integer, primary_key=True)
+    episode_idx = Column(Integer)
+    run_id = Column(Integer, ForeignKey("runs.id"))
+    input_id = Column(Integer, ForeignKey("criticinputs.id"))
+    value1 = Column(Float)
+    value2 = Column(Float)
+
+
 def create_database():
     log.info("Creating database")
     Base.metadata.create_all(engine)

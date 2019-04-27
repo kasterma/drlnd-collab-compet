@@ -89,5 +89,9 @@ class Experiences:
 
         return states_tensor, actions_tensor, rewards_tensor, next_states_tensor, dones_tensor
 
+    def choice(self):
+        """Get one experience from the memory, leave as numpy objects"""
+        return random.choice(self.memory)
+
     def __len__(self):
         return len(self.memory)

@@ -8,11 +8,13 @@ import click
 import numpy as np
 from datetime import datetime
 
+import torch
+
 from collabcompet import *
 from collabcompet.agents import MADDPG
 from collabcompet.config import config
 from collabcompet.tbWrapper import TBWrapper
-from collabcompet.orm import load_config_from_db, session, Model
+from collabcompet.orm import load_config_from_db, session, Model, CriticInput, CriticValue
 
 log = logging.getLogger("agent")
 
@@ -86,6 +88,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
         log.info("Starting new run")
     state = env.reset(train_mode=True)
     scores = []
+    critic_inputs = []
     scores_deque = deque(maxlen=scores_window)
     max_mean_achieved = -1
     trained_episode_idx = -1
@@ -131,6 +134,26 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
 
             if trained_episode_idx > 0 and episode_idx > trained_episode_idx + steps_after:
                 break
+
+            if episode_idx % 10 == 0:
+                # add a new state action pair to track; we add them over time since there will be new combinations
+                # that appear later as the agents learn to play better.  The speed with which to add should be
+                # tweaked to get good data while not slowing learning too much
+                new_critic_input: Experience = agent.experiences.choice()
+                new_critic_state = torch.from_numpy(new_critic_input.state).float().unsqueeze(0)
+                new_critic_actions = torch.from_numpy(new_critic_input.action).float().unsqueeze(0)
+                ci = CriticInput(state=new_critic_state, actions=new_critic_actions)
+                orm.session.add(ci)
+                orm.session.commit()
+                critic_inputs.append(ci)
+
+            for ci in critic_inputs:
+                critic_value = agent.critic_local.forward(ci.state, ci.actions)
+                log.debug(critic_value)
+                cv = CriticValue(run_id=run_id, episode_idx=episode_idx, input_id=ci.id,
+                                 value1=critic_value[0,0], value2=critic_value[0,1])
+                orm.session.add(cv)
+                orm.session.commit()
     except KeyboardInterrupt:
         log.info("Stopped early by keyboard interrupt")
     log.info(f"Saving final models under id {run_id} and label {episode_idx + 1}")
