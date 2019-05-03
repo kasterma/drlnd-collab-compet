@@ -206,6 +206,7 @@ class MADDPG(AgentInterface):
 
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
+        # Q: why not recorded from the actual run?  SARSA (second A are the recorded actions)
         action_1 = self.actor_1_local(next_states[:, :self.state_size])
         action_2 = self.actor_2_local(next_states[:, self.state_size:])
         actions_next = torch.cat([action_1, action_2], 1)
@@ -250,5 +251,5 @@ class MADDPG(AgentInterface):
         self._soft_update(self.actor_2_local, self.actor_2_target, TAU)
 
         # ------------------------- storing loss values ------------------------- #
-        self.loss = [actor_1_loss.item(), actor_2_loss.item(), critic_loss.item()]
+        self.loss = [-actor_1_loss.item(), -actor_2_loss.item(), critic_loss.item()]
 
