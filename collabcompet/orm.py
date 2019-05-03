@@ -51,6 +51,16 @@ class Model(Base):
     model_dict = Column(PickleType)
 
 
+class RecordedScalar(Base):
+    __tablename__ = "recordedscalars"
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("runs.id"))
+    episode_idx = Column(Integer)
+    label = Column(String)
+    value = Column(Float)
+
+
 class CriticInput(Base):
     __tablename__ = "criticinputs"
 

@@ -82,3 +82,4 @@ Werkzeug==0.14.1
 widgetsnbextension==3.4.2
 
 bokeh
+prometheus_client
