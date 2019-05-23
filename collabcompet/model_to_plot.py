@@ -1,12 +1,14 @@
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from collections import defaultdict
 
 from collabcompet.config import config
 from collabcompet.agents import MADDPG
 from collabcompet.orm import session, Model, load_config_from_db
+
+from pyecharts.charts import Scatter
 
 
 class NNAnalysis:
