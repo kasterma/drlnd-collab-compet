@@ -43,6 +43,10 @@ train-run-full:
 	python train.py train --print_every=50 --no-graphics --steps_after=10000
 
 
+eval:
+	python train.py evaluate --run_id 32
+
+
 tensorboard:
 	echo http://localhost:6006/
 	tensorboard --logdir logs/ --debug

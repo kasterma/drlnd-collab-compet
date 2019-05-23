@@ -14,7 +14,7 @@ from collabcompet import *
 from collabcompet.agents import MADDPG
 from collabcompet.config import config
 from collabcompet.tbWrapper import TBWrapper
-from collabcompet.orm import load_config_from_db, session, Model, CriticInput, CriticValue
+from collabcompet.orm import load_config_from_db, session, Model, CriticInput, CriticValue, save_scalar
 
 log = logging.getLogger("agent")
 
@@ -100,21 +100,30 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
             env.reset(train_mode=True)
             agent.reset()
             score = np.zeros(2)
+            score_list = []
             while True:
                 action = agent.get_action(state)
                 assert action.shape == (2, 2)
                 step_result = env.step(action)
+
                 experience = Experience(state, action, step_result.rewards, step_result.next_state, step_result.done,
                                         joint=True)
                 agent.record_experience(experience)
                 tb.add_scalar("actor_a", agent.loss[0])
+                save_scalar(episode_idx, "actor_a", agent.loss[0])
                 tb.add_scalar("actor_b", agent.loss[1])
+                save_scalar(episode_idx, "actor_b", agent.loss[1])
                 tb.add_scalar("critic", agent.loss[2])
+                save_scalar(episode_idx, "critic", agent.loss[2])
                 # print(step_result.rewards)
                 score += step_result.rewards
+                score_list.append(step_result.rewards)
                 if np.any(step_result.done):
                     break
                 state = step_result.next_state
+            log.info(f"Score list length {len(score_list)}")
+            log.info(f"Max score {np.max(np.sum(score_list, axis=0))}")
+            log.info(f"Discounted max score {np.max(([0.99**i for i in range(np.array(score_list).shape[0])] * np.array(score_list).transpose()).transpose())}")
             assert score.shape == (2,)
             episode_score = np.max(score)
             save_score(episode_idx, episode_score)
@@ -123,7 +132,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
             mean_achieved_score = np.mean(scores_deque)
             max_mean_achieved = max(mean_achieved_score, max_mean_achieved)
             tb.add_scalar("score".format(run_id), episode_score)
+            save_scalar(episode_idx, "score", episode_score)
             tb.add_scalar("mean-scores".format(run_id), mean_achieved_score)
+            save_scalar(episode_idx, "mean-scores", mean_achieved_score)
             if episode_idx % print_every == 0:
                 log.info("Mean achieved score %f (max %f)  ---  %d/%d (%f)",
                          mean_achieved_score, max_mean_achieved, episode_idx, number_episodes, episode_score)

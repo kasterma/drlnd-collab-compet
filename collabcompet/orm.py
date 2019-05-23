@@ -129,3 +129,9 @@ def load_config_from_db(run_id: int):
     assert len(runs) == 1
     set_config(yaml.load(runs[0].config))
     log.info(f"Loaded config: {config}")
+
+
+def save_scalar(episode_idx, label, value):
+    scalar = RecordedScalar(run_id=run.id, episode_idx=episode_idx, label=label, value=value)
+    session.add(scalar)
+    session.commit()
