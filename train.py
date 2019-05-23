@@ -102,7 +102,7 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
             score = np.zeros(2)
             score_list = []
             while True:
-                action = agent.get_action(state)
+                action = agent.get_action(state, add_noise=episode_idx < 3000)
                 assert action.shape == (2, 2)
                 step_result = env.step(action)
 
@@ -121,9 +121,9 @@ def train_run(number_episodes: int, print_every: int, continue_run: bool, graphi
                 if np.any(step_result.done):
                     break
                 state = step_result.next_state
-            log.info(f"Score list length {len(score_list)}")
-            log.info(f"Max score {np.max(np.sum(score_list, axis=0))}")
-            log.info(f"Discounted max score {np.max(([0.99**i for i in range(np.array(score_list).shape[0])] * np.array(score_list).transpose()).transpose())}")
+            log.debug(f"Score list length {len(score_list)}")
+            log.debug(f"Max score {np.max(np.sum(score_list, axis=0))}")
+            log.debug(f"Discounted max score {np.max(([0.99**i for i in range(np.array(score_list).shape[0])] * np.array(score_list).transpose()).transpose())}")
             assert score.shape == (2,)
             episode_score = np.max(score)
             save_score(episode_idx, episode_score)
