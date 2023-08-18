@@ -73,7 +73,7 @@ terminado==0.8.1
 testpath==0.4.2
 torch==1.13.1
 torchvision==0.2.1
-tornado==6.3.2
+tornado==6.3.3
 traitlets==4.3.2
 unityagents==0.4.0
 wcwidth==0.1.7
